@@ -1,5 +1,5 @@
 import api from "@/src/core/api";
-import { UsuarioResponse } from "@/src/core/types/usuario/index";
+import { UsuarioRequest, UsuarioResponse } from "@/src/core/types/usuario/index";
 
 
 const UserService = {
@@ -44,6 +44,14 @@ const UserService = {
             await api.delete(`/usuarios/${id}`);
         }catch(error){
             console.error("UserService: erro ao deletar usuário.", error);
+        }
+    },
+    async updateUser(id: number, request:UsuarioRequest){
+        try{
+           const response = await api.put<UsuarioResponse>(`/usuarios/${id}`,request);
+           return response.data;
+        }catch(error){
+            console.error("UserService: erro ao atualizar usuário de id:"+id, error);
         }
     }
 }

@@ -1,15 +1,16 @@
 import { RoleName } from "@/src/shared/enums/roleName";
+import { StatusUsuario } from "@/src/shared/enums/statusUsuario";
 
 export interface UsuarioSecurityRequest {
-    nome: String,
-    email: String,
-    senha: String,
+    nome: string,
+    email: string,
+    senha: string,
     roles: RoleName[]
 }
 
 export interface LoginSecurityRequest {
-    email: String,
-    senha: String
+    email: string,
+    senha: string
 }
 
 export interface UsuarioResponse{
@@ -17,4 +18,18 @@ export interface UsuarioResponse{
     nome: string,
     email: string,
     roles: RoleName[]
+}
+
+export interface UsuarioRequest{
+    nome: string,
+    email:string,
+    senha:string
+}
+
+export interface UsuarioDadosResponse{
+    id: number,
+    nome: string,
+    email: string,
+    status: StatusUsuario,
+    dataCriacao:Date
 }

@@ -35,6 +35,7 @@ public class TurmaController {
         this.turmaService = turmaService;
     }
 
+    //endpoints de turma
     @PostMapping
     public ResponseEntity<TurmaResponse> criarTurma(@RequestBody TurmaRequest turmaRequest){
         return ResponseEntity.status(HttpStatus.CREATED).body(this.turmaService.salvarTurma(turmaRequest));
@@ -66,6 +67,8 @@ public class TurmaController {
         this.turmaService.apagarTurma(id);
         return ResponseEntity.noContent().build();
     }
+
+    //endpoints de relacionamento da turma
     @PostMapping("/{idTurma}/professores/{idProfessor}")
     public ResponseEntity<LecionaResponse> associarProfessorATurma(
             @PathVariable("idTurma")Long idTurma,@PathVariable("idProfessor") Long idProfessor){

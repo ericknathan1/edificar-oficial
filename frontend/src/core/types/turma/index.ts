@@ -9,8 +9,21 @@ export interface TurmaResponse {
     statusPadrao: StatusPadrao
 }
 
+export interface TurmaDadosResponse{
+     id: number,
+    nome: string,
+    faixaEtaria: string,
+    diaPadrao: DiaPadrao,
+    statusPadrao: StatusPadrao
+}
+
 export interface TurmaRequest {
     nome: string,
     faixaEtaria: string,
     diaPadrao: DiaPadrao
 }
+
+export interface TurmaStatusRequest{
+    status: StatusPadrao;
+}
+
