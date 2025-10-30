@@ -30,10 +30,8 @@ const RegisterScreen = () => {
   const [role, setRole] = useState<RoleName>(RoleName.ROLE_PROFESSOR); // Padrão: Professor
   // Estado para controlar o "carregando" (loading)
   const [loading, setLoading] = useState(false);
-
-  // --- FUNÇÃO DE CADASTRO ---
+  
   const handleRegister = async () => {
-    // 1. Validação dos campos
     if (!nome || !email || !password || !confirmPassword) {
       Alert.alert('Erro', 'Por favor, preencha todos os campos.');
       return;

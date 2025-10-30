@@ -38,5 +38,14 @@ const UserService = {
         }catch(error){
             console.error("UserService: erro ao buscar usuário logado.", error);
         }
+    },
+    async deleteUser(id: number){
+        try{
+            await api.delete(`/usuarios/${id}`);
+        }catch(error){
+            console.error("UserService: erro ao deletar usuário.", error);
+        }
     }
 }
+
+export default UserService;

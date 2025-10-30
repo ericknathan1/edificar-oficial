@@ -66,10 +66,6 @@ const LoginScreen = () => {
           <TouchableOpacity onPress={validarLogin} style={styles.button}>
             <Text style={styles.buttonText}>Entrar</Text>
           </TouchableOpacity>
-
-          <TouchableOpacity style={styles.forgotPasswordButton}>
-            <Text style={styles.forgotPasswordText}>Esqueci a senha</Text>
-          </TouchableOpacity>
         </View>
       </View>
 
@@ -124,7 +120,7 @@ const styles = StyleSheet.create({
     marginBottom: 30,
     // A fonte da imagem é Serifada (como Times New Roman)
     // Para usar a fonte exata, você precisaria importá-la no projeto
-    fontFamily: Platform.OS === 'ios' ? 'Times New Roman' : 'serif',
+    fontFamily: 'Mogilte.otf',
   },
   input: {
     height: 50,
