@@ -57,38 +57,45 @@ const TurmaService = {
         }
     },async putAlunoInTurma(idTurma:number,idAluno:number){
         try{
-            const response = await api.post<InscricaoResponse>(`/${idTurma}/aluno/${idAluno}`);
+            const response = await api.post<InscricaoResponse>(`/turmas/${idTurma}/aluno/${idAluno}`);
             return response.data;
         }catch(error){
             console.error("TurmaService: erro ao tentar associar aluno a turma",error);
         }
     },async putProfessorInTurma(idTurma:number,idProfessor:number){
         try{
-            const response = await api.post<LecionaResponse>(`/${idTurma}/professores/${idProfessor}`);
+            const response = await api.post<LecionaResponse>(`/turmas/${idTurma}/professores/${idProfessor}`);
             return response.data;
         }catch(error){
             console.error("TurmaService: erro ao tentar associar professor a turma",error);
         }
     },async getProfessoresByTurmaId(idTurma:number){
         try{
-            const response = await api.get<UsuarioDadosResponse[]>(`/${idTurma}/professores`);
+            const response = await api.get<UsuarioDadosResponse[]>(`/turmas/${idTurma}/professores`);
             return response.data;
         }catch(error){
             console.error("TurmaService: erro ao tentar exibir professores da turma",error);
         }
     }, async getAlunoByTurmaId(idTurma:number){
         try{
-            const response = await api.get<AlunoDadosResponse[]>(`/${idTurma}/alunos`);
+            const response = await api.get<AlunoDadosResponse[]>(`/turmas/${idTurma}/alunos`);
             return response.data;
         }catch(error){
             console.error("TurmaService: erro ao tentar exibir alunos de uma turma",error);
         }
     }, async getAulasByTurmaId(idTurma:number){
         try{
-            const response = await api.get<AulaResponse[]>(`/${idTurma}/aulas`);
+            const response = await api.get<AulaResponse[]>(`/turmas/${idTurma}/aulas`);
             return response.data;
         }catch(error){
             console.error("TurmaService: error ao tentar exibir aulas de uma turma", error);
+        }
+    }, async returnTurmasAtivas(){
+        try{
+            const response = await api.get<TurmaResponse[]>("/turmas/ativas");
+            return response.data;
+        }catch(error){
+            console.error('TurmaService: error ao tentar exibir turmas ativas', error);
         }
     }
 }

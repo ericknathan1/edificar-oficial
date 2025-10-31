@@ -109,6 +109,15 @@ public class TurmaService {
         return responseList;
     }
 
+    // GET '/turmas'
+    public List<TurmaResponse> retornarTurmasAtivas(){
+        List<Turma> turmas = this.turmaRepository.turmasAtivas();
+        List<TurmaResponse> responseList = turmas.stream().map(
+                turma -> modelMapper.map(turma,TurmaResponse.class)
+        ).collect(Collectors.toList());
+        return responseList;
+    }
+
     //DELETE '/turmas/{id}'
     public void apagarTurma(Long id){
         this.turmaRepository.apagarTurma(id);

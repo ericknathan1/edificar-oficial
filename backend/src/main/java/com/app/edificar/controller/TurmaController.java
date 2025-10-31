@@ -58,6 +58,11 @@ public class TurmaController {
     public ResponseEntity<List<TurmaResponse>> listarTurmas(){
         return ResponseEntity.ok(this.turmaService.retornarTurmas());
     }
+
+    @GetMapping("/ativas")
+    public ResponseEntity<List<TurmaResponse>> listarTurmasAtivas(){
+        return ResponseEntity.ok(this.turmaService.retornarTurmasAtivas());
+    }
     @GetMapping("/{id}")
     public ResponseEntity<TurmaResponse> buscarTurmaPorId(@PathVariable("id")Long id){
         return ResponseEntity.ok(this.turmaService.turmaPorId(id));
