@@ -1,6 +1,5 @@
 package com.app.edificar.DTO.response;
 
-import com.app.edificar.entity.Aula;
 import com.app.edificar.enums.FrequenciaStatus;
 
 public class AlunoFrequenciaResponse {

@@ -1,4 +1,6 @@
+import { FrequenciaStatus } from "@/src/shared/enums/frequenciaStatus"
 import { StatusPadrao } from "@/src/shared/enums/statusPadrao"
+import { AulaResponse } from "../aulas"
 
 export interface AlunoRequest{
     nomeCompleto:string,
@@ -22,4 +24,11 @@ export interface AlunoDadosResponse{
     contatoResponsavel:string,
     dataCriacao:Date,
     status:StatusPadrao
+}
+
+export interface AlunoFrequenciaResponse{
+    id: number,
+    justificativa: string,
+    frequenciaStatus: FrequenciaStatus,
+    aula: AulaResponse
 }
