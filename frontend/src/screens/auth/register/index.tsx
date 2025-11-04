@@ -2,6 +2,7 @@ import { UsuarioSecurityRequest } from '@/src/core/types/usuario/index';
 import { useNavigation } from '@/src/shared/constants/router';
 import { RoleName } from '@/src/shared/enums/roleName';
 import RegisterService from '@/src/shared/services/auth/register';
+import axios from 'axios';
 import React, { useState } from 'react';
 import {
   Alert,
@@ -30,12 +31,16 @@ const RegisterScreen = () => {
   const [role, setRole] = useState<RoleName>(RoleName.ROLE_PROFESSOR); // Padrão: Professor
   // Estado para controlar o "carregando" (loading)
   const [loading, setLoading] = useState(false);
+  //Estado para mensagem de erro
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
   
   const handleRegister = async () => {
+
     if (!nome || !email || !password || !confirmPassword) {
       Alert.alert('Erro', 'Por favor, preencha todos os campos.');
       return;
     }
+
     if (password !== confirmPassword) {
       Alert.alert('Erro', 'As senhas não coincidem.');
       return;
@@ -66,8 +71,11 @@ const RegisterScreen = () => {
       );
 
     } catch (error: any) {
-      // 5. Trata o erro vindo do serviço
+      if(axios.isAxiosError(error) && error.response?.status === 409){
+        Alert.alert('Erro no Cadastro', 'Email já cadastrado. Por favor, use outro email.');
+      }else{
       Alert.alert('Erro no Cadastro', error.message);
+      }
     } finally {
       // 6. Para o loading, independente de sucesso ou falha
       setLoading(false);

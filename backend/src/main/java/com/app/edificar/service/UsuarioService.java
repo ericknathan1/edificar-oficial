@@ -7,10 +7,12 @@ import java.util.stream.Collectors;
 
 import org.modelmapper.ModelMapper;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
 import org.springframework.stereotype.Service;
+import org.springframework.web.server.ResponseStatusException;
 
 import com.app.edificar.DTO.request.UsuarioRequest;
 import com.app.edificar.DTO.request.UsuarioStatusRequest;
@@ -74,6 +76,11 @@ public class UsuarioService {
     }
 
     public void criarUsuario(UsuarioSecurityRequest request){
+
+        if (usuarioRepository.findByEmail(request.getEmail()).isPresent()){
+            throw new ResponseStatusException(HttpStatus.CONFLICT, "Este e-mail já está em uso.");
+        }
+
         Usuario usuario = modelMapper.map(request,Usuario.class);
         usuario.setSenhaHash(securityConfiguration.passwordEncoder().encode(request.getSenha()));
         usuario.setStatus(StatusUsuario.ATIVO);

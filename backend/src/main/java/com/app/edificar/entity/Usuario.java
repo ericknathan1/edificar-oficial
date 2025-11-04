@@ -4,7 +4,6 @@ import java.time.LocalDate;
 import java.util.List;
 
 import com.app.edificar.enums.StatusUsuario;
-import com.app.edificar.enums.TipoUsuario;
 
 import jakarta.persistence.CascadeType;
 import jakarta.persistence.Column;
@@ -29,7 +28,7 @@ public class Usuario {
     private Long id;
     @Column(name = "usuario_nome")
     private String nome;
-    @Column(name = "usuario_email")
+    @Column(name = "usuario_email", unique=true)
     private String email;
     @Column(name = "usuario_senha_hash")
     private String senhaHash;
