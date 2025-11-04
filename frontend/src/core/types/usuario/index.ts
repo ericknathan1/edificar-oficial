@@ -23,7 +23,7 @@ export interface UsuarioResponse{
 export interface UsuarioRequest{
     nome: string,
     email:string,
-    senha:string
+    senha:string | null
 }
 
 export interface UsuarioDadosResponse{

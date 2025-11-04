@@ -16,24 +16,47 @@ import {
   View,
 } from 'react-native';
 
-// Importar o novo serviço e os tipos
-
-
 const RegisterScreen = () => {
   const [nome, setNome] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const navigation = useNavigation();
-
-  // --- NOVOS ESTADOS ---
-  // Estado para controlar o tipo de conta (Role) selecionada
-  const [role, setRole] = useState<RoleName>(RoleName.ROLE_PROFESSOR); // Padrão: Professor
-  // Estado para controlar o "carregando" (loading)
+  const [role, setRole] = useState<RoleName>(RoleName.ROLE_PROFESSOR);
   const [loading, setLoading] = useState(false);
-  //Estado para mensagem de erro
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
-  
+
+  // --- NOVOS ESTADOS PARA VALIDAÇÃO DE SENHA ---
+  const [isPasswordFocused, setIsPasswordFocused] = useState(false);
+  const [validation, setValidation] = useState({
+    hasLower: false,    // Letra minúscula
+    hasUpper: false,    // Letra maiúscula
+    hasNumber: false,   // Número
+    hasSpecial: false,  // Caractere especial
+    hasLength: false,   // 8 caracteres
+  });
+  // --- FIM DOS NOVOS ESTADOS ---
+
+
+  // --- NOVA FUNÇÃO PARA VALIDAR A SENHA ---
+  /**
+   * Valida a senha em tempo real e atualiza o estado de validação.
+   */
+  const handlePasswordChange = (text: string) => {
+    setPassword(text); // Atualiza o estado da senha
+
+    // Valida os requisitos
+    setValidation({
+      hasLower: /[a-z]/.test(text),
+      hasUpper: /[A-Z]/.test(text),
+      hasNumber: /\d/.test(text), // \d é o mesmo que [0-9]
+      hasSpecial: /[!@#$%^&*(),.?":{}|<>]/.test(text), // Sinta-se à vontade para adicionar/remover caracteres
+      hasLength: text.length >= 8,
+    });
+  };
+  // --- FIM DA NOVA FUNÇÃO ---
+
+
   const handleRegister = async () => {
 
     if (!nome || !email || !password || !confirmPassword) {
@@ -45,6 +68,19 @@ const RegisterScreen = () => {
       Alert.alert('Erro', 'As senhas não coincidem.');
       return;
     }
+
+    // --- NOVA VERIFICAÇÃO DE FORÇA DA SENHA ---
+    // Pega todos os valores do estado de validação
+    const allValid = Object.values(validation).every(Boolean);
+    
+    if (!allValid) {
+      Alert.alert(
+        'Senha Fraca',
+        'Sua senha não atende a todos os requisitos. Por favor, verifique a lista e tente novamente.'
+      );
+      return;
+    }
+    // --- FIM DA VERIFICAÇÃO ---
 
     // 2. Inicia o loading
     setLoading(true);
@@ -117,9 +153,33 @@ const RegisterScreen = () => {
               placeholderTextColor="#9E9E9E"
               secureTextEntry={true}
               value={password}
-              onChangeText={setPassword}
+              onChangeText={handlePasswordChange}    // <-- ALTERADO
+              onFocus={() => setIsPasswordFocused(true)} // <-- NOVO
               editable={!loading}
             />
+
+            {/* --- NOVA CAIXA DE VALIDAÇÃO DE SENHA --- */}
+            {(isPasswordFocused || password.length > 0) && (
+              <View style={styles.validationContainer}>
+                <Text style={[styles.validationText, validation.hasLength ? styles.validationTextValid : styles.validationTextInvalid]}>
+                  {validation.hasLength ? '✓' : '•'} Pelo menos 8 caracteres
+                </Text>
+                <Text style={[styles.validationText, validation.hasLower ? styles.validationTextValid : styles.validationTextInvalid]}>
+                  {validation.hasLower ? '✓' : '•'} Uma letra minúscula (a-z)
+                </Text>
+                <Text style={[styles.validationText, validation.hasUpper ? styles.validationTextValid : styles.validationTextInvalid]}>
+                  {validation.hasUpper ? '✓' : '•'} Uma letra maiúscula (A-Z)
+                </Text>
+                <Text style={[styles.validationText, validation.hasNumber ? styles.validationTextValid : styles.validationTextInvalid]}>
+                  {validation.hasNumber ? '✓' : '•'} Um número (0-9)
+                </Text>
+                <Text style={[styles.validationText, validation.hasSpecial ? styles.validationTextValid : styles.validationTextInvalid]}>
+                  {validation.hasSpecial ? '✓' : '•'} Um caractere especial (!@#$)
+                </Text>
+              </View>
+            )}
+            {/* --- FIM DA CAIXA DE VALIDAÇÃO --- */}
+
 
             <TextInput
               style={styles.input}
@@ -230,7 +290,7 @@ const styles = StyleSheet.create({
     color: '#003F72',
     textAlign: 'center',
     marginBottom: 30,
-    fontFamily: Platform.OS === 'ios' ? 'Times New Roman' : 'serif',
+    fontFamily: Platform.OS === 'ios' ? 'Roboto' : 'sans-serif',
   },
   input: {
     height: 50,
@@ -242,6 +302,30 @@ const styles = StyleSheet.create({
     fontSize: 16,
     backgroundColor: '#F9F9F9',
   },
+
+  // --- NOVOS ESTILOS PARA VALIDAÇÃO DE SENHA ---
+  validationContainer: {
+    paddingHorizontal: 15,
+    paddingVertical: 10,
+    marginBottom: 15, // Espaço antes do campo "Confirmar Senha"
+    backgroundColor: '#F9F9F9',
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: '#E0E0E0',
+  },
+  validationText: {
+    fontSize: 14,
+    lineHeight: 22, // Espaçamento entre as linhas
+  },
+  validationTextInvalid: {
+    color: '#D32F2F', // Um vermelho mais escuro
+  },
+  validationTextValid: {
+    color: '#388E3C', // Um verde mais escuro
+    textDecorationLine: 'none', // Remove o 'line-through' para um visual mais limpo
+  },
+  // --- FIM DOS NOVOS ESTILOS ---
+
   // --- NOVOS ESTILOS PARA O SELETOR DE ROLE ---
   label: {
     fontSize: 16,

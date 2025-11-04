@@ -9,6 +9,7 @@ const UserService = {
             return userResponse.data;
         }catch(error){
             console.error('UserService: erro ao buscar usuario ', error);
+            throw error;
         }
     }, async returnAllUsers(){
         try{
@@ -16,6 +17,7 @@ const UserService = {
             return userResponse.data;
         }catch(error){
             console.error('UserService: erro ao listar usuarios', error);
+            throw error;
         }
     }, async returnActiveUsers(){
         try{
@@ -23,6 +25,7 @@ const UserService = {
             return userResponse.data;
         }catch(error){
             console.error('UserService: erro ao listar usuarios ativos', error);
+            throw error;
         }
     }, async returnDeletedUsers(){
         try{
@@ -30,6 +33,7 @@ const UserService = {
             return userResponse.data;
         }catch(error){
             console.error("UserService: erro ao listar usuarios apagados", error);
+            throw error;
         }
     }, async returnAuthUser(){
         try{
@@ -37,6 +41,7 @@ const UserService = {
             return userResponse.data;
         }catch(error){
             console.error("UserService: erro ao buscar usuário logado.", error);
+            throw error;
         }
     },
     async deleteUser(id: number){
@@ -44,6 +49,7 @@ const UserService = {
             await api.delete(`/usuarios/${id}`);
         }catch(error){
             console.error("UserService: erro ao deletar usuário.", error);
+            throw error;
         }
     },
     async updateUser(id: number, request:UsuarioRequest){
@@ -52,6 +58,7 @@ const UserService = {
            return response.data;
         }catch(error){
             console.error("UserService: erro ao atualizar usuário de id:"+id, error);
+            throw error;
         }
     }
 }

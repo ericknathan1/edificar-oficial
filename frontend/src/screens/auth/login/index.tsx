@@ -7,7 +7,8 @@ import {
   TouchableOpacity,
   SafeAreaView,
   StatusBar,
-  Platform, // Importa Platform para checar o S.O.
+  Platform,
+  Image, // Importa Platform para checar o S.O.
 } from 'react-native';
 import LoginService from '../../../shared/services/auth/login/index';
 import { useNavigation } from '@/src/shared/constants/router';
@@ -43,8 +44,8 @@ const LoginScreen = () => {
       <View style={styles.mainContent}>
         {/* O card branco */}
         <View style={styles.card}>
-          <Text style={styles.logo}>Edificar</Text>
-
+          {/* <Text style={styles.logo}>Edificar</Text> */}
+            <Image style={styles.logo} source={require("../../../../assets/images/logo.png")}/>
           <TextInput
             style={styles.input}
             placeholder="Insira o email ou nome de usuário"
@@ -100,7 +101,7 @@ const styles = StyleSheet.create({
     borderRadius: 16, // Bordas arredondadas
     paddingVertical: 35,
     paddingHorizontal: 25,
-    alignItems: 'stretch', // Faz os filhos (inputs, button) esticarem
+    alignItems: 'center', // Faz os filhos (inputs, button) esticarem
     // Sombra (iOS)
     shadowColor: '#000',
     shadowOffset: {
@@ -113,14 +114,9 @@ const styles = StyleSheet.create({
     elevation: 8,
   },
   logo: {
-    fontSize: 48,
-    fontWeight: 'bold',
-    color: '#003F72', // Azul do logo (mesmo do fundo)
-    textAlign: 'center',
-    marginBottom: 30,
-    // A fonte da imagem é Serifada (como Times New Roman)
-    // Para usar a fonte exata, você precisaria importá-la no projeto
-    fontFamily: 'Mogilte.otf',
+    width: 300,
+    height: 120,
+    resizeMode: 'contain'
   },
   input: {
     height: 50,
@@ -130,7 +126,8 @@ const styles = StyleSheet.create({
     paddingHorizontal: 15,
     marginBottom: 15,
     fontSize: 16,
-    backgroundColor: '#F9F9F9', // Fundo do input levemente cinza
+    backgroundColor: '#F9F9F9',
+    width: "100%" // Fundo do input levemente cinza
   },
   button: {
     backgroundColor: '#3FA9F5', // Azul claro do botão
@@ -139,6 +136,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginTop: 10,
     marginBottom: 20,
+    width: "100%"
   },
   buttonText: {
     color: 'white',

@@ -7,6 +7,7 @@ const RegisterService = {
             await api.post("/usuarios/cadastro", request);
         }catch(error){
             console.error("RegisterService: erro ao tentar cadastrar usuario", error);
+            throw error;
         }
     }
 }
