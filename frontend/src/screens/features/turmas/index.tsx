@@ -1,21 +1,22 @@
-import React, { useState, useEffect, useCallback } from "react";
-import { 
-    FlatList, 
-    Text, 
-    View, 
-    StyleSheet, 
-    ActivityIndicator, 
+import React, { useCallback, useEffect, useState } from "react";
+import {
+    ActivityIndicator,
+    FlatList,
     SafeAreaView,
-    TouchableOpacity 
+    StyleSheet,
+    Text,
+    TouchableOpacity,
+    View
 } from "react-native";
 
 // Importando os componentes de tela e o serviço
-import TurmaService from "@/src/shared/services/turma";
 import { TurmaResponse } from "@/src/core/types/turma";
+import TurmaService from "@/src/shared/services/turma";
 
 // NOVAS TELAS INTEGRADAS
+import { formatTitleCase } from "@/src/shared/resources/formatters/fortmatTitleCase";
 import TurmaDetalheScreen from "./turmaDetalhe"; // Assumindo que você as salvou no mesmo diretório
-import TurmaFormScreen from "./turmaForm";    // Assumindo que você as salvou no mesmo diretório
+import TurmaFormScreen from "./turmaForm"; // Assumindo que você as salvou no mesmo diretório
 
 // --- Enum para Gerenciamento de Estado da Tela ---
 enum ScreenState {
@@ -35,9 +36,9 @@ const TurmaItem = ({ item, onPress }: TurmaItemProps) => (
     <TouchableOpacity style={styles.itemContainer} onPress={() => onPress(item.id)}>
         <Text style={styles.itemName}>{item.nome}</Text>
         <View style={styles.itemDetails}>
-            <Text style={styles.itemText}>Dia: {item.diaPadrao}</Text>
+            <Text style={styles.itemText}>Dia: {formatTitleCase(item.diaPadrao)}</Text>
             <Text style={styles.itemText}>Faixa Etária: {item.faixaEtaria}</Text>
-            <Text style={styles.itemText}>Status: {item.statusPadrao}</Text>
+            <Text style={styles.itemText}>Status: {formatTitleCase(item.statusPadrao)}</Text>
         </View>
         <Text style={styles.viewMoreText}>VER DETALHES</Text>
     </TouchableOpacity>

@@ -1,19 +1,20 @@
-import React, { useState, useEffect } from "react";
+import React, { useEffect, useState } from "react";
 import {
-    ScrollView,
-    Text,
-    View,
-    StyleSheet,
     ActivityIndicator,
     Alert,
+    ScrollView,
+    StyleSheet,
+    Text,
     TouchableOpacity,
+    View,
 } from "react-native";
 // Importações de tipos e serviço
-import TurmaService from "@/src/shared/services/turma";
-import { TurmaResponse } from "@/src/core/types/turma";
-import { UsuarioDadosResponse } from "@/src/core/types/usuario";
 import { AlunoDadosResponse } from "@/src/core/types/alunos";
 import { AulaResponse } from "@/src/core/types/aulas";
+import { TurmaResponse } from "@/src/core/types/turma";
+import { UsuarioDadosResponse } from "@/src/core/types/usuario";
+import TurmaService from "@/src/shared/services/turma";
+import { formatTitleCase } from '../../../../shared/resources/formatters/fortmatTitleCase/index';
 
 interface TurmaDetalheProps {
     turmaId: number; // ID da turma a ser exibida
@@ -184,8 +185,8 @@ const TurmaDetalheScreen = ({ turmaId, onEdit, onBack, onDeleteSuccess }: TurmaD
             <View style={styles.detailsContainer}>
                 <Text style={styles.detailText}><Text style={styles.detailLabel}>ID:</Text> {turma.id}</Text>
                 <Text style={styles.detailText}><Text style={styles.detailLabel}>Faixa Etária:</Text> {turma.faixaEtaria}</Text>
-                <Text style={styles.detailText}><Text style={styles.detailLabel}>Dia Padrão:</Text> {turma.diaPadrao}</Text>
-                <Text style={styles.detailText}><Text style={styles.detailLabel}>Status:</Text> {turma.statusPadrao}</Text>
+                <Text style={styles.detailText}><Text style={styles.detailLabel}>Dia Padrão:</Text> {formatTitleCase(turma.diaPadrao)}</Text>
+                <Text style={styles.detailText}><Text style={styles.detailLabel}>Status:</Text> {formatTitleCase(turma.statusPadrao)}</Text>
             </View>
             
             {renderProfessores()}
