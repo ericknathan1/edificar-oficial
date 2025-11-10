@@ -2,13 +2,19 @@ package com.app.edificar.controller;
 
 
 
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.CrossOrigin;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RestController;
+
 import com.app.edificar.DTO.request.FrequenciaStatusRequest;
-import com.app.edificar.DTO.response.AulaResponse;
+import com.app.edificar.DTO.response.FrequenciaMediaResponse;
 import com.app.edificar.DTO.response.FrequenciaResponse;
 import com.app.edificar.service.FrequenciaService;
-import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.*;
-import org.springframework.web.bind.annotation.CrossOrigin;
 
 @CrossOrigin("*")
 @RestController
@@ -21,8 +27,14 @@ public class FrequenciaController {
     }
 
     @PostMapping("/aplicarPresenca/{idAula}")
-    public ResponseEntity<FrequenciaResponse> iniciarAula(@PathVariable("idAula")
-    Long idAula, @RequestBody FrequenciaStatusRequest request){
+    public ResponseEntity<FrequenciaResponse> iniciarAula(@PathVariable("idAula")Long idAula, 
+    @RequestBody FrequenciaStatusRequest request){
         return ResponseEntity.ok(this.frequenciaService.aplicarPresenca(idAula,request));
+    }
+
+    @GetMapping("/aula/{aulaId}/media")
+    public ResponseEntity<FrequenciaMediaResponse> retornarMediaPorAula(@PathVariable Long aulaId) {
+        FrequenciaMediaResponse media = frequenciaService.calcularMediaFrequenciaPorAula(aulaId);
+        return ResponseEntity.ok(media);
     }
 }

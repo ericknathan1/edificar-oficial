@@ -1,15 +1,25 @@
 package com.app.edificar.service;
 
-import com.app.edificar.DTO.request.FrequenciaStatusRequest;
-import com.app.edificar.DTO.response.FrequenciaResponse;
-import com.app.edificar.entity.*;
-import com.app.edificar.enums.RoleName;
-import com.app.edificar.enums.TipoUsuario;
-import com.app.edificar.repository.*;
+import java.util.List;
+
 import org.modelmapper.ModelMapper;
 import org.springframework.stereotype.Service;
 
-import java.util.List;
+import com.app.edificar.DTO.request.FrequenciaStatusRequest;
+import com.app.edificar.DTO.response.FrequenciaMediaResponse;
+import com.app.edificar.DTO.response.FrequenciaResponse;
+import com.app.edificar.entity.Aluno;
+import com.app.edificar.entity.Aula;
+import com.app.edificar.entity.Frequencia;
+import com.app.edificar.entity.Usuario;
+import com.app.edificar.enums.FrequenciaStatus;
+import com.app.edificar.enums.RoleName;
+import com.app.edificar.repository.AlunoRepository;
+import com.app.edificar.repository.AulaRepository;
+import com.app.edificar.repository.FrequenciaRepository;
+import com.app.edificar.repository.LecionaRepository;
+import com.app.edificar.repository.TurmaRepository;
+import com.app.edificar.repository.UsuarioRepository;
 
 @Service
 public class FrequenciaService {
@@ -63,5 +73,30 @@ public class FrequenciaService {
 
         Frequencia frequenciaAtualizada = frequenciaRepository.save(frequenciaBuscada);
         return modelMapper.map(frequenciaAtualizada, FrequenciaResponse.class);
+    }
+
+    public FrequenciaMediaResponse calcularMediaFrequenciaPorAula(Long aulaId) {
+        // 1. Valida se a aula existe
+        if (!aulaRepository.existsById(aulaId)) {
+            throw new IllegalArgumentException("A aula requisitada (" + aulaId + ") não existe.");
+        }
+
+        // 2. Busca todas as frequências (registros de alunos) para esta aula
+        List<Frequencia> frequenciasDaAula = frequenciaRepository.frequenciasPorAulaId(aulaId);
+
+        // 3. Se a lista estiver vazia (aula sem chamada ou sem alunos), retorna 0
+        if (frequenciasDaAula.isEmpty()) {
+            return new FrequenciaMediaResponse(aulaId, 0, 0);
+        }
+
+        // 4. Calcula o total de alunos e o total de presentes
+        long totalAlunos = frequenciasDaAula.size();
+        
+        long totalPresentes = frequenciasDaAula.stream()
+                .filter(f -> f.getStatus() == FrequenciaStatus.PRESENTE)
+                .count();
+
+        // 5. Retorna o DTO com o cálculo
+        return new FrequenciaMediaResponse(aulaId, totalAlunos, totalPresentes);
     }
 }

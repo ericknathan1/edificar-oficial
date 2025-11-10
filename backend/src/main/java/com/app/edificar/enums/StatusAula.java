@@ -4,7 +4,8 @@ public enum StatusAula {
     AGENDADA(1,"AGENDADA"),
     EM_ANDAMENTO(2,"EM_ANDAMENTO"),
     FINALIZADA(3,"FINALIZADA"),
-    CANCELADA(0,"CANCELADA");
+    CANCELADA(0,"CANCELADA"),
+    APAGADA(-1,"APAGADA");
 
     private final int valor;
     private final String descricao;

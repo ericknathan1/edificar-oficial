@@ -73,38 +73,89 @@ public class AulaService {
         return modelMapper.map(aula,AulaResponse.class);
     }
 
-    public AulaResponse reagendarAula(Long aulaId, AulaUpdateRequest request){
-        Aula aulaBuscada = aulaRepository.aulaPorId(aulaId);
+   public AulaResponse reagendarAula(Long aulaId, AulaUpdateRequest request){
+        // 1. Busca a aula ou lança exceção
+        Aula aulaBuscada = aulaRepository.findById(aulaId)
+                .orElseThrow(() -> new IllegalArgumentException("A aula requisitada (" + aulaId + ") não existe"));
+
+        // 2. Valida o status
+        if (aulaBuscada.getStatus() != StatusAula.AGENDADA ){
+            throw new IllegalArgumentException("A aula requisitada ("
+                    + aulaId + ") não pode ser editada, pois possui o status: " + aulaBuscada.getStatus());
+        }
+
+        // 3. Atualiza a Data (se fornecida)
+        if (request.getData() != null) {
+            Long turmaId = aulaBuscada.getTurma().getId();
+            List<Aula> aulasDaTurma = aulaRepository.aulaPorTurmaId(turmaId);
+
+            // 3a. Verifica se a data já existe em OUTRA aula desta turma
+            boolean dataJaExisteEmOutraAula = aulasDaTurma.stream()
+                    .anyMatch(aula ->
+                        !aula.getId().equals(aulaId) && // Exclui a própria aula da verificação
+                        aula.getData().equals(request.getData()) // Compara datas corretamente
+                    );
+
+            if (dataJaExisteEmOutraAula){
+                throw new IllegalArgumentException("A data da aula requisitada ("
+                        + request.getData() + ") já existe em outra aula agendada para esta turma.");
+            }
+            
+            // 3b. Atualiza a data
+            aulaBuscada.setData(request.getData());
+        }
+
+        // 4. Atualiza Tópico (se fornecido)
+        if (request.getTopico() != null) {
+            aulaBuscada.setTopico(request.getTopico());
+        }
+
+        // 5. Atualiza Visitantes (se fornecido)
+        if (request.getVisitante() != null) {
+            aulaBuscada.setVisitante(request.getVisitante()); // A entidade usa 'setVisitantes' (plural)
+        }
+
+        // 6. Atualiza Professor (se fornecido)
+        if (request.getUsuarioId() != null){
+            Usuario usuario = usuarioRepository.findById(request.getUsuarioId())
+                    .orElseThrow(() -> new IllegalArgumentException("O professor (usuárioId: " + request.getUsuarioId() + ") não foi encontrado."));
+            aulaBuscada.setUsuario(usuario);
+        }
+
+        // 7. Salva e retorna
+        Aula aulaAtualizada = aulaRepository.save(aulaBuscada);
+        return modelMapper.map(aulaAtualizada, AulaResponse.class);
+    }
+
+
+    public AulaResponse aulaPorId(Long aulaId){
+        Aula aulaBuscada = this.aulaRepository.aulaPorId(aulaId);
         if (aulaBuscada == null){
             throw new IllegalArgumentException("A aula requisitada ("
                     +aulaId+") não existe");
         }
-        List<Aula> aulasDaTurma = aulaRepository.aulaPorTurmaId(aulaId);
-        boolean existeAula = aulasDaTurma.stream()
-                .anyMatch(aula -> aula.getData() == request.getData());
-
-        if (existeAula){
-            throw new IllegalArgumentException("A data da aula requisitada ("
-                    +request.getData()+") já existe em uma aula agendada.");
-        }
-        if (aulaBuscada.getStatus() != StatusAula.AGENDADA ){
-            throw new IllegalArgumentException("A aula requisitada ("
-                    + aulaId + ") porque possui o status: "+aulaBuscada.getStatus());
-        }
-        aulaBuscada.setData(request.getData());
-
-        if (request.getUsuarioId() != null){
-            Usuario usuario = usuarioRepository.usuarioPorId(request.getUsuarioId());
-            aulaBuscada.setUsuario(usuario);
-        }
-
-        aulaRepository.save(aulaBuscada);
-
         return modelMapper.map(aulaBuscada,AulaResponse.class);
     }
 
 
+    public void apagarAula(Long aulaId){
+        Aula aulaBuscada = this.aulaRepository.aulaPorId(aulaId);
+        if (aulaBuscada == null){
+            throw new IllegalArgumentException("A aula requisitada ("
+                    +aulaId+") não existe");
+        }
+        this.aulaRepository.apagarAula(aulaId);
+    }
 
+    public List<AulaResponse> listarAulas(){
+    List<Aula> aulas = aulaRepository.findAll();
+    return aulas.stream()
+                .map(aula -> modelMapper.map(aula, AulaResponse.class))
+                .toList();
+    }
+
+    
+    //Lógicas de fluxos de aula
 
     public AulaResponse iniciarAula(Long professorId, Long aulaId){
         Usuario professor = this.usuarioRepository.usuarioPorId(professorId);
@@ -165,12 +216,7 @@ public class AulaService {
         return modelMapper.map(aulaFinalizada, AulaResponse.class);
     }
 
-    public List<AulaResponse> listarAulas(){
-        List<Aula> aulas = aulaRepository.findAll();
-        return aulas.stream()
-                .map(aula -> modelMapper.map(aula, AulaResponse.class))
-                .toList();
-    }
+
 
     
 
