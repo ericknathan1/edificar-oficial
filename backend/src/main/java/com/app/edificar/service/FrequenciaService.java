@@ -1,6 +1,7 @@
 package com.app.edificar.service;
 
 import java.util.List;
+import java.util.stream.Collectors;
 
 import org.modelmapper.ModelMapper;
 import org.springframework.stereotype.Service;
@@ -39,6 +40,13 @@ public class FrequenciaService {
         this.usuarioRepository = usuarioRepository;
         this.turmaRepository = turmaRepository;
         this.lecionaRepository = lecionaRepository;
+    }
+
+    public List<FrequenciaResponse> frequenciaPorAula(Long aulaId){
+        List<Frequencia> frequencias = frequenciaRepository.frequenciasPorAulaId(aulaId);
+        return frequencias.stream()
+                .map(frequencia -> modelMapper.map(frequencia,FrequenciaResponse.class))
+                .collect(Collectors.toList());
     }
 
     public FrequenciaResponse aplicarPresenca(Long aulaId, FrequenciaStatusRequest request){

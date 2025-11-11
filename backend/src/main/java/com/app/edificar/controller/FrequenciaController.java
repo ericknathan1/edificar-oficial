@@ -16,6 +16,8 @@ import com.app.edificar.DTO.response.FrequenciaMediaResponse;
 import com.app.edificar.DTO.response.FrequenciaResponse;
 import com.app.edificar.service.FrequenciaService;
 
+import java.util.List;
+
 @CrossOrigin("*")
 @RestController
 @RequestMapping("/frequencias")
@@ -30,6 +32,13 @@ public class FrequenciaController {
     public ResponseEntity<FrequenciaResponse> iniciarAula(@PathVariable("idAula")Long idAula, 
     @RequestBody FrequenciaStatusRequest request){
         return ResponseEntity.ok(this.frequenciaService.aplicarPresenca(idAula,request));
+    }
+
+    @GetMapping("/aula/{aulaId}")
+    public ResponseEntity<List<FrequenciaResponse>> retornarFrequenciasPorAula(
+            @PathVariable("aulaId") Long aulaId){
+        List<FrequenciaResponse> responses = frequenciaService.frequenciaPorAula(aulaId);
+        return ResponseEntity.ok(responses);
     }
 
     @GetMapping("/aula/{aulaId}/media")

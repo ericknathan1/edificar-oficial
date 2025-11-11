@@ -5,13 +5,11 @@ import com.app.edificar.enums.TipoUsuario;
 public class UsuarioRequest {
     private String nome;
     private String email;
-    private String senhaHash;
     
 
     public UsuarioRequest(String nome, String email, String senhaHash, TipoUsuario tipo) {
         this.nome = nome;
         this.email = email;
-        this.senhaHash = senhaHash;
     }
 
     public String getNome() {
@@ -28,13 +26,5 @@ public class UsuarioRequest {
 
     public void setEmail(String email) {
         this.email = email;
-    }
-
-    public String getSenhaHash() {
-        return senhaHash;
-    }
-
-    public void setSenhaHash(String senhaHash) {
-        this.senhaHash = senhaHash;
     }
 }

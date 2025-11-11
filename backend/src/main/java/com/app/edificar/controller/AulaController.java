@@ -4,14 +4,7 @@ import java.util.List;
 
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.CrossOrigin;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.PutMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
 import com.app.edificar.DTO.request.AulaRequest;
 import com.app.edificar.DTO.request.AulaUpdateRequest;
@@ -48,7 +41,6 @@ public class AulaController {
    public ResponseEntity<AulaResponse> retornarAulaPorId(@PathVariable("id") Long id){
        return ResponseEntity.ok(this.aulaService.aulaPorId(id));
    }
-   
 
    @GetMapping
    public ResponseEntity<List<AulaResponse>> listarAulas(){
@@ -67,5 +59,11 @@ public class AulaController {
                                                    Long idAula){
        Long idProfessor = this.authenticationService.getIdUsuarioAutenticado();
        return ResponseEntity.ok(this.aulaService.finalizarAula(idProfessor,idAula));
+   }
+
+   @DeleteMapping("/{idAula}")
+    public ResponseEntity cancelarAula(@PathVariable("idAula") Long idAula){
+        aulaService.apagarAula(idAula);
+        return ResponseEntity.noContent().build();
    }
 }

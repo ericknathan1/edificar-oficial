@@ -18,4 +18,5 @@ public interface InscricaoRepository extends JpaRepository<Inscricao,Long> {
     List<Turma> buscarTurmaPorAluno(@Param("alunoId") Long alunoId);
     @Query("SELECT i.aluno FROM Inscricao i WHERE i.turma.id = :turmaId AND i.aluno.id = :alunoId")
     Aluno buscarAlunoEmTurmaPorId(@Param("turmaId") Long turmaId,@Param("alunoId") Long alunoId);
+    Inscricao findByTurmaIdAndAlunoId(Long turmaId, Long alunoId);
 }

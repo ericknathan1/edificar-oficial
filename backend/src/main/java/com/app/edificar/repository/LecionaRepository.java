@@ -18,5 +18,6 @@ public interface LecionaRepository extends JpaRepository<Leciona,Long> {
     List<Turma> turmasPorProfessorId(@Param("idProfessor") Long idProfessor);
     @Query("SELECT COUNT(l) FROM Leciona l WHERE l.turma.id=:idTurma AND l.usuario.id=:idProfessor")
     Long turmaProfessorExiste(@Param("idTurma") Long idTurma, @Param("idProfessor") Long idProfessor);
+    Leciona findByTurmaIdAndUsuarioId(Long turmaId, Long usuarioId);
 }
 

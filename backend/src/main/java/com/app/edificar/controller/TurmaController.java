@@ -97,4 +97,21 @@ public class TurmaController {
     public ResponseEntity<List<AulaResponse>> listarAulasDeUmaTurma(@PathVariable("idTurma")Long idTurma){
         return ResponseEntity.ok(this.turmaService.aulasEmUmaTurma(idTurma));
     }
+    /**
+     * Remove a associação de um professor de uma turma.
+     */
+    @DeleteMapping("/{idTurma}/professores/{idProfessor}")
+    public ResponseEntity<Void> desassociarProfessor(@PathVariable Long idTurma, @PathVariable Long idProfessor) {
+        turmaService.desassociarProfessor(idTurma, idProfessor);
+        return ResponseEntity.noContent().build(); // Retorna 204 No Content
+    }
+
+    /**
+     * Remove a inscrição de um aluno de uma turma (desmatricular).
+     */
+    @DeleteMapping("/{idTurma}/aluno/{idAluno}")
+    public ResponseEntity<Void> desmatricularAluno(@PathVariable Long idTurma, @PathVariable Long idAluno) {
+        turmaService.desmatricularAluno(idTurma, idAluno);
+        return ResponseEntity.noContent().build(); // Retorna 204 No Content
+    }
 }

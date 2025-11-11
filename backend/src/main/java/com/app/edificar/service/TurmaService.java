@@ -3,6 +3,7 @@ package com.app.edificar.service;
 import java.util.List;
 import java.util.stream.Collectors;
 
+import jakarta.transaction.Transactional;
 import org.modelmapper.ModelMapper;
 import org.springframework.stereotype.Service;
 
@@ -187,5 +188,33 @@ public class TurmaService {
         List<AulaResponse> responses = aulasBuscadas.stream().map(aula -> modelMapper.map(aula,AulaResponse.class)).
                 collect(Collectors.toList());
         return responses;
+    }
+
+    @Transactional
+    public void desmatricularAluno(Long idTurma, Long idAluno) {
+        Inscricao inscricao = inscricaoRepository.findByTurmaIdAndAlunoId(idTurma, idAluno);
+        if (inscricao == null) {
+            throw new IllegalArgumentException("Inscrição não encontrada para a turma " + idTurma + " e aluno " + idAluno);
+        }
+
+        // Deleta a inscrição
+        inscricaoRepository.delete(inscricao);
+    }
+
+    /**
+     * Remove a associação de um professor de uma turma (desassociar).
+     *
+     * @param idTurma ID da turma.
+     * @param idProfessor ID do professor (usuário).
+     */
+    @Transactional
+    public void desassociarProfessor(Long idTurma, Long idProfessor) {
+        Leciona leciona = lecionaRepository.findByTurmaIdAndUsuarioId(idTurma, idProfessor);
+        if (leciona == null) {
+            throw new IllegalArgumentException("Associação 'Leciona' não encontrada para a turma " + idTurma + " e professor " + idProfessor);
+        }
+
+        // Deleta a associação
+        lecionaRepository.delete(leciona);
     }
 }
