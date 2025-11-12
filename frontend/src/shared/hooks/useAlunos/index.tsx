@@ -1,8 +1,8 @@
-import { useState, useCallback } from 'react';
-import { useFocusEffect } from 'expo-router';
-import { AlunoResponse, AlunoDadosResponse } from '@/src/core/types/alunos';
-import AlunoService from '@/src/shared/services/aluno';
+import { AlunoFrequenciaResponse, AlunoResponse } from '@/src/core/types/alunos';
 import { TurmaResponse } from '@/src/core/types/turma';
+import AlunoService from '@/src/shared/services/aluno';
+import { useFocusEffect } from 'expo-router';
+import { useCallback, useEffect, useState } from 'react';
 
 /**
  * Hook para buscar a lista de todos os alunos.
@@ -41,12 +41,15 @@ export const useAlunos = () => {
 };
 
 /**
- * Hook para buscar os detalhes de um aluno específico (dados + turmas).
+ * Hook para buscar os detalhes de um aluno específico (dados + turmas + frequências).
  * Recarrega os dados se o ID mudar.
  */
 export const useAlunoDetalhes = (id: number | null) => {
-  const [aluno, setAluno] = useState<AlunoDadosResponse | null>(null);
-  const [turmas, setTurmas] = useState<TurmaResponse | null>(null); // O service indica que retorna UMA turma, não um array
+  const [aluno, setAluno] = useState<AlunoResponse | null>(null);
+  // CORREÇÃO: Backend retorna List<TurmaResponse>
+  const [turmas, setTurmas] = useState<TurmaResponse[]>([]);
+  // CORREÇÃO: Backend retorna List<AlunoFrequenciaResponse>
+  const [frequencias, setFrequencias] = useState<AlunoFrequenciaResponse[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -54,10 +57,11 @@ export const useAlunoDetalhes = (id: number | null) => {
     setIsLoading(true);
     setError(null);
     try {
-      // Busca os dados do aluno e as turmas em paralelo
-      const [alunoData, turmasData] = await Promise.all([
+      // Busca os dados do aluno, turmas e frequências em paralelo
+      const [alunoData, turmasData, frequenciasData] = await Promise.all([
         AlunoService.retornarAlunoPorId(alunoId),
-        AlunoService.listarTurmasPorAluno(alunoId)
+        AlunoService.listarTurmasPorAluno(alunoId),
+        AlunoService.listarFrequenciasPorAluno(alunoId)
       ]);
 
       if (alunoData) {
@@ -66,7 +70,8 @@ export const useAlunoDetalhes = (id: number | null) => {
         setError('Aluno não encontrado.');
       }
       
-      setTurmas(turmasData || null); // Armazena dados das turmas
+      setTurmas(turmasData || []); // Armazena dados das turmas
+      setFrequencias(frequenciasData || []); // Armazena dados das frequências
 
     } catch (err) {
       console.error(`Erro no hook useAlunoDetalhes (id: ${alunoId}):`, err);
@@ -82,9 +87,10 @@ export const useAlunoDetalhes = (id: number | null) => {
     } else {
       // Limpa os dados se o ID for nulo
       setAluno(null);
-      setTurmas(null);
+      setTurmas([]);
+      setFrequencias([]);
     }
   }, [id, fetchDetalhes]);
 
-  return { aluno, turmas, isLoading, error, refetch: () => id ? fetchDetalhes(id) : Promise.resolve() };
+  return { aluno, turmas, frequencias, isLoading, error, refetch: () => id ? fetchDetalhes(id) : Promise.resolve() };
 };

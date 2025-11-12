@@ -1,124 +1,85 @@
-import React, { useEffect, useState } from "react";
+import React, { useState } from "react";
 import {
-    ActivityIndicator,
     Alert,
     ScrollView,
     StyleSheet,
     Text,
-    TouchableOpacity,
     View,
 } from "react-native";
 // Importações de tipos e serviço
-import { AlunoDadosResponse } from "@/src/core/types/alunos";
-import { AulaResponse } from "@/src/core/types/aulas";
-import { TurmaResponse } from "@/src/core/types/turma";
-import { UsuarioDadosResponse } from "@/src/core/types/usuario";
 import TurmaService from "@/src/shared/services/turma";
 import { formatTitleCase } from '../../../../shared/resources/formatters/fortmatTitleCase/index';
 
+// Importando hooks e componentes de UI
+import { AlertDialog } from "@/src/shared/components/ui/alertDialog";
+import { Button } from "@/src/shared/components/ui/button";
+import { Card } from "@/src/shared/components/ui/card";
+import { Header } from "@/src/shared/components/ui/header";
+import { ScreenContainer } from "@/src/shared/components/ui/screenContainer";
+import { Spinner } from "@/src/shared/components/ui/spinner";
+import { useTurmaDetalhes } from "@/src/shared/hooks/useTurmas";
+
 interface TurmaDetalheProps {
-    turmaId: number; // ID da turma a ser exibida
-    onEdit: (id: number) => void; // Função para navegação para edição (já existia)
-    onBack: () => void; // Função para voltar (já existia)
-    onDeleteSuccess: () => void; // NOVO: Callback após deletar com sucesso
+    turmaId: number;
+    onEdit: (id: number) => void;
+    onBack: () => void;
+    onDeleteSuccess: () => void;
 }
 
 const TurmaDetalheScreen = ({ turmaId, onEdit, onBack, onDeleteSuccess }: TurmaDetalheProps) => {
-    const [turma, setTurma] = useState<TurmaResponse | null>(null);
-    const [professores, setProfessores] = useState<UsuarioDadosResponse[]>([]);
-    const [alunos, setAlunos] = useState<AlunoDadosResponse[]>([]);
-    const [aulas, setAulas] = useState<AulaResponse[]>([]);
-    const [loading, setLoading] = useState(true);
-    const [error, setError] = useState<string | null>(null);
+    // ** REFATORAÇÃO PRINCIPAL **
+    // Substitui useState, useEffect e carregarDetalhesTurma pelo hook
+    const { turma, professores, alunos, aulas, isLoading, error, refetch } = useTurmaDetalhes(turmaId);
+    
+    const [isDeleting, setIsDeleting] = useState(false);
+    const [isDeleteAlertVisible, setIsDeleteAlertVisible] = useState(false);
 
-    // Função de Carregamento (Sem alteração)
-    const carregarDetalhesTurma = async (id: number) => {
-        setLoading(true);
-        setError(null);
+    // Lógica de Deletar Turma (agora usa o AlertDialog)
+    const handleDelete = () => {
+        setIsDeleteAlertVisible(true);
+    };
+
+    const confirmDelete = async () => {
+        setIsDeleteAlertVisible(false);
+        setIsDeleting(true);
         try {
-            const turmaData = await TurmaService.returnTurmaById(id);
-            if (turmaData) {
-                setTurma(turmaData);
-                const professoresData = await TurmaService.getProfessoresByTurmaId(id);
-                setProfessores(professoresData || []);
-                const alunosData = await TurmaService.getAlunoByTurmaId(id);
-                setAlunos(alunosData || []);
-                const aulasData = await TurmaService.getAulasByTurmaId(id);
-                setAulas(aulasData || []);
-            } else {
-                setError("Turma não encontrada ou erro ao carregar dados.");
-                setTurma(null);
-            }
+            await TurmaService.deleteTurma(turmaId);
+            Alert.alert("Sucesso", "Turma deletada com sucesso.");
+            onDeleteSuccess(); // Volta para a lista
         } catch (err) {
-            console.error("Erro ao carregar detalhes da turma:", err);
-            setError("Ocorreu um erro ao buscar os dados da turma.");
+            console.error("Erro ao deletar turma:", err);
+            Alert.alert("Erro", "Falha ao deletar a turma. Tente novamente.");
         } finally {
-            setLoading(false);
+            setIsDeleting(false);
         }
     };
 
-    useEffect(() => {
-        carregarDetalhesTurma(turmaId);
-    }, [turmaId]);
-
-    // --- NOVO: Lógica de Deletar Turma ---
-    const handleDelete = () => {
-        Alert.alert(
-            "Confirmar Exclusão",
-            `Tem certeza que deseja deletar a turma "${turma?.nome}"? Esta ação não pode ser desfeita.`,
-            [
-                {
-                    text: "Cancelar",
-                    style: "cancel"
-                },
-                {
-                    text: "Deletar",
-                    style: "destructive",
-                    onPress: async () => {
-                        setLoading(true);
-                        try {
-                            await TurmaService.deleteTurma(turmaId);
-                            Alert.alert("Sucesso", "Turma deletada com sucesso.");
-                            onDeleteSuccess(); // Chama o callback para voltar à lista e recarregar
-                        } catch (err) {
-                            console.error("Erro ao deletar turma:", err);
-                            Alert.alert("Erro", "Falha ao deletar a turma. Tente novamente.");
-                        } finally {
-                            setLoading(false);
-                        }
-                    }
-                }
-            ]
-        );
-    };
-    // ----------------------------------------
-
-    // --- Renderização Condicional (Inalterada) ---
-    if (loading) {
+    // --- Renderização Condicional ---
+    if (isLoading) {
         return (
-            <View style={styles.center}>
-                <ActivityIndicator size="large" color="#007bff" />
+            <ScreenContainer style={styles.center}>
+                <Spinner size="large" />
                 <Text>Carregando detalhes da turma...</Text>
-            </View>
+            </ScreenContainer>
         );
     }
 
     if (error || !turma) {
         return (
-            <View style={styles.center}>
+            <ScreenContainer style={styles.center}>
                 <Text style={styles.errorText}>{error || "Dados da turma indisponíveis."}</Text>
-                <TouchableOpacity style={styles.backButton} onPress={onBack}>
-                    <Text style={styles.buttonText}>Voltar</Text>
-                </TouchableOpacity>
-            </View>
+                <Button title="Voltar" onPress={onBack} variant="ghost" />
+                <Button title="Tentar Novamente" onPress={refetch} />
+            </ScreenContainer>
         );
     }
     
-    const renderProfessores = () => (/* ... código inalterado ... */
-        <View style={styles.section}>
+    // --- Sub-componentes de Renderização ---
+    const renderProfessores = () => (
+        <Card style={styles.section}>
             <Text style={styles.sectionTitle}>Professores ({professores.length})</Text>
             {professores.length > 0 ? (
-                professores.map((prof, index) => (
+                professores.map((prof) => (
                     <Text key={prof.id} style={styles.listItem}>
                         • {prof.nome} ({prof.email})
                     </Text>
@@ -126,14 +87,14 @@ const TurmaDetalheScreen = ({ turmaId, onEdit, onBack, onDeleteSuccess }: TurmaD
             ) : (
                 <Text style={styles.listItem}>Nenhum professor associado.</Text>
             )}
-        </View>
+        </Card>
     );
 
-    const renderAlunos = () => (/* ... código inalterado ... */
-        <View style={styles.section}>
+    const renderAlunos = () => (
+        <Card style={styles.section}>
             <Text style={styles.sectionTitle}>Alunos Matriculados ({alunos.length})</Text>
             {alunos.length > 0 ? (
-                alunos.map((aluno, index) => (
+                alunos.map((aluno) => (
                     <Text key={aluno.id} style={styles.listItem}>
                         • {aluno.nomeCompleto} (Resp: {aluno.contatoResponsavel})
                     </Text>
@@ -141,14 +102,14 @@ const TurmaDetalheScreen = ({ turmaId, onEdit, onBack, onDeleteSuccess }: TurmaD
             ) : (
                 <Text style={styles.listItem}>Nenhum aluno matriculado.</Text>
             )}
-        </View>
+        </Card>
     );
 
-    const renderAulas = () => (/* ... código inalterado ... */
-        <View style={styles.section}>
+    const renderAulas = () => (
+        <Card style={styles.section}>
             <Text style={styles.sectionTitle}>Próximas Aulas ({aulas.length})</Text>
             {aulas.length > 0 ? (
-                aulas.map((aula, index) => (
+                aulas.map((aula) => (
                     <Text key={aula.id} style={styles.listItem}>
                         • {new Date(aula.data).toLocaleDateString()} - {aula.horaInicio} ({aula.topico})
                     </Text>
@@ -156,117 +117,82 @@ const TurmaDetalheScreen = ({ turmaId, onEdit, onBack, onDeleteSuccess }: TurmaD
             ) : (
                 <Text style={styles.listItem}>Nenhuma aula agendada.</Text>
             )}
-        </View>
+        </Card>
     );
 
 
-    // --- Renderização Principal (Com Botões de Ação) ---
     return (
-        <ScrollView style={styles.container}>
-            <View style={styles.header}>
-                <TouchableOpacity onPress={onBack} style={styles.backButton}>
-                    <Text style={styles.backButtonText}>{"< Voltar"}</Text>
-                </TouchableOpacity>
-                <Text style={styles.turmaName}>{turma.nome}</Text>
-            </View>
-
-            <View style={styles.actionButtons}>
-                {/* Botão de Editar */}
-                <TouchableOpacity style={styles.editButton} onPress={() => onEdit(turma.id)} disabled={loading}>
-                    <Text style={styles.actionButtonText}>Editar Turma</Text>
-                </TouchableOpacity>
-
-                {/* Botão de Deletar */}
-                <TouchableOpacity style={styles.deleteButton} onPress={handleDelete} disabled={loading}>
-                    <Text style={styles.actionButtonText}>Deletar</Text>
-                </TouchableOpacity>
-            </View>
-
-            <View style={styles.detailsContainer}>
-                <Text style={styles.detailText}><Text style={styles.detailLabel}>ID:</Text> {turma.id}</Text>
-                <Text style={styles.detailText}><Text style={styles.detailLabel}>Faixa Etária:</Text> {turma.faixaEtaria}</Text>
-                <Text style={styles.detailText}><Text style={styles.detailLabel}>Dia Padrão:</Text> {formatTitleCase(turma.diaPadrao)}</Text>
-                <Text style={styles.detailText}><Text style={styles.detailLabel}>Status:</Text> {formatTitleCase(turma.statusPadrao)}</Text>
-            </View>
+        <ScreenContainer>
+            {/* Componente Header customizado */}
+            <Header title={turma.nome} onBack={onBack} />
             
-            {renderProfessores()}
-            {renderAlunos()}
-            {renderAulas()}
+            <ScrollView style={styles.container}>
+                <Card style={styles.detailsContainer}>
+                    <Text style={styles.detailText}><Text style={styles.detailLabel}>Faixa Etária:</Text> {turma.faixaEtaria}</Text>
+                    <Text style={styles.detailText}><Text style={styles.detailLabel}>Dia Padrão:</Text> {formatTitleCase(turma.diaPadrao)}</Text>
+                    <Text style={styles.detailText}><Text style={styles.detailLabel}>Status:</Text> {formatTitleCase(turma.statusPadrao)}</Text>
+                </Card>
 
-            <View style={{ height: 40 }} />
-        </ScrollView>
+                <View style={styles.actionButtons}>
+                    <Button 
+                        title="Editar Turma" 
+                        onPress={() => onEdit(turma.id)} 
+                        disabled={isDeleting}
+                        variant="warning"
+                        style={styles.actionButton}
+                    />
+                    <Button 
+                        title="Deletar" 
+                        onPress={handleDelete} 
+                        loading={isDeleting}
+                        disabled={isDeleting}
+                        variant="danger"
+                        style={styles.actionButton}
+                    />
+                </View>
+                
+                {renderProfessores()}
+                {renderAlunos()}
+                {renderAulas()}
+
+                <View style={{ height: 40 }} />
+            </ScrollView>
+
+            {/* Componente AlertDialog customizado */}
+            <AlertDialog
+                visible={isDeleteAlertVisible}
+                title="Confirmar Exclusão"
+                message={`Tem certeza que deseja deletar a turma "${turma.nome}"? Esta ação não pode ser desfeita.`}
+                confirmText="Deletar"
+                cancelText="Cancelar"
+                onConfirm={confirmDelete}
+                onCancel={() => setIsDeleteAlertVisible(false)}
+            />
+        </ScreenContainer>
     );
 };
 
-// --- Estilos (Adicionando estilos para os novos botões) ---
 const styles = StyleSheet.create({
     container: {
         flex: 1,
-        backgroundColor: '#f4f4f8',
         padding: 16,
     },
-    header: {
-        flexDirection: 'row',
-        alignItems: 'center',
+    center: {
+        flex: 1,
         justifyContent: 'center',
-        paddingBottom: 20,
-        borderBottomWidth: 1,
-        borderBottomColor: '#ddd',
-        marginBottom: 10,
-    },
-    backButton: {
-        position: 'absolute',
-        left: 0,
-        padding: 5,
-    },
-    backButtonText: {
-        fontSize: 16,
-        color: '#007bff',
-        fontWeight: '500',
-    },
-    turmaName: {
-        fontSize: 28,
-        fontWeight: 'bold',
-        color: '#007bff',
-        textAlign: 'center',
+        alignItems: 'center',
     },
     actionButtons: {
         flexDirection: 'row',
-        justifyContent: 'space-around',
+        justifyContent: 'space-between',
         marginBottom: 20,
-        marginTop: 10,
     },
-    editButton: {
-        flex: 1,
-        marginRight: 10,
-        backgroundColor: '#ffc107', // Amarelo para editar
-        paddingVertical: 10,
-        borderRadius: 5,
-        alignItems: 'center',
-    },
-    deleteButton: {
-        flex: 1,
-        marginLeft: 10,
-        backgroundColor: '#dc3545', // Vermelho para deletar
-        paddingVertical: 10,
-        borderRadius: 5,
-        alignItems: 'center',
-    },
-    actionButtonText: {
-        color: '#fff',
-        fontWeight: 'bold',
-        fontSize: 16,
+    actionButton: {
+        flex: 1, // Faz os botões dividirem o espaço
+        marginHorizontal: 5, // Adiciona espaço entre eles
     },
     detailsContainer: {
-        backgroundColor: '#ffffff',
-        padding: 15,
-        borderRadius: 8,
         marginBottom: 20,
-        shadowColor: "#000",
-        shadowOffset: { width: 0, height: 1 },
-        shadowOpacity: 0.05,
-        shadowRadius: 2,
-        elevation: 3,
     },
     detailText: {
         fontSize: 16,
@@ -278,15 +204,7 @@ const styles = StyleSheet.create({
         color: '#333'
     },
     section: {
-        backgroundColor: '#ffffff',
-        padding: 15,
-        borderRadius: 8,
         marginBottom: 20,
-        shadowColor: "#000",
-        shadowOffset: { width: 0, height: 1 },
-        shadowOpacity: 0.05,
-        shadowRadius: 2,
-        elevation: 3,
     },
     sectionTitle: {
         fontSize: 18,
@@ -302,20 +220,12 @@ const styles = StyleSheet.create({
         color: '#666',
         paddingVertical: 3,
     },
-    center: {
-        flex: 1,
-        justifyContent: 'center',
-        alignItems: 'center',
-    },
     errorText: {
         color: 'red',
         fontSize: 16,
         marginBottom: 15,
+        textAlign: 'center'
     },
-    buttonText: {
-        color: '#fff',
-        fontWeight: 'bold',
-    }
 });
 
 export default TurmaDetalheScreen;

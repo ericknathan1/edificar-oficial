@@ -1,8 +1,9 @@
 import { UsuarioSecurityRequest } from '@/src/core/types/usuario/index';
+import { Button } from '@/src/shared/components/ui/button';
+import { Input } from '@/src/shared/components/ui/input';
 import { useNavigation } from '@/src/shared/constants/router';
 import { RoleName } from '@/src/shared/enums/roleName';
-import RegisterService from '@/src/shared/services/auth/register';
-import axios from 'axios';
+import { useAuth } from '@/src/shared/hooks/useAuth';
 import React, { useState } from 'react';
 import {
   Alert,
@@ -11,7 +12,6 @@ import {
   StatusBar,
   StyleSheet,
   Text,
-  TextInput,
   TouchableOpacity,
   View,
 } from 'react-native';
@@ -23,97 +23,74 @@ const RegisterScreen = () => {
   const [confirmPassword, setConfirmPassword] = useState('');
   const navigation = useNavigation();
   const [role, setRole] = useState<RoleName>(RoleName.ROLE_PROFESSOR);
+  
+  // O hook useAuth já tem um 'loading', mas vamos usar um local
+  // para ter controle fino sobre o formulário.
   const [loading, setLoading] = useState(false);
-  const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const { register } = useAuth(); // Pega a função de registro
 
-  // --- NOVOS ESTADOS PARA VALIDAÇÃO DE SENHA ---
   const [isPasswordFocused, setIsPasswordFocused] = useState(false);
   const [validation, setValidation] = useState({
-    hasLower: false,    // Letra minúscula
-    hasUpper: false,    // Letra maiúscula
-    hasNumber: false,   // Número
-    hasSpecial: false,  // Caractere especial
-    hasLength: false,   // 8 caracteres
+    hasLower: false,
+    hasUpper: false,
+    hasNumber: false,
+    hasSpecial: false,
+    hasLength: false,
   });
-  // --- FIM DOS NOVOS ESTADOS ---
 
-
-  // --- NOVA FUNÇÃO PARA VALIDAR A SENHA ---
-  /**
-   * Valida a senha em tempo real e atualiza o estado de validação.
-   */
   const handlePasswordChange = (text: string) => {
-    setPassword(text); // Atualiza o estado da senha
-
-    // Valida os requisitos
+    setPassword(text);
     setValidation({
       hasLower: /[a-z]/.test(text),
       hasUpper: /[A-Z]/.test(text),
-      hasNumber: /\d/.test(text), // \d é o mesmo que [0-9]
-      hasSpecial: /[!@#$%^&*(),.?":{}|<>]/.test(text), // Sinta-se à vontade para adicionar/remover caracteres
+      hasNumber: /\d/.test(text),
+      hasSpecial: /[!@#$%^&*(),.?":{}|<>]/.test(text),
       hasLength: text.length >= 8,
     });
   };
-  // --- FIM DA NOVA FUNÇÃO ---
-
 
   const handleRegister = async () => {
-
     if (!nome || !email || !password || !confirmPassword) {
       Alert.alert('Erro', 'Por favor, preencha todos os campos.');
       return;
     }
-
     if (password !== confirmPassword) {
       Alert.alert('Erro', 'As senhas não coincidem.');
       return;
     }
-
-    // --- NOVA VERIFICAÇÃO DE FORÇA DA SENHA ---
-    // Pega todos os valores do estado de validação
     const allValid = Object.values(validation).every(Boolean);
-    
     if (!allValid) {
-      Alert.alert(
-        'Senha Fraca',
-        'Sua senha não atende a todos os requisitos. Por favor, verifique a lista e tente novamente.'
-      );
+      Alert.alert('Senha Fraca', 'Sua senha não atende a todos os requisitos.');
       return;
     }
-    // --- FIM DA VERIFICAÇÃO ---
 
-    // 2. Inicia o loading
     setLoading(true);
 
-    // 3. Monta o objeto da requisição
     const request: UsuarioSecurityRequest = {
       nome: nome,
       email: email,
       senha: password,
-      roles: [role] // Envia a role selecionada dentro de um array
+      roles: [role],
     };
 
-    // 4. Chama o serviço
     try {
-      await RegisterService.createUser(request);
+      // Usa a função 'register' do hook
+      await register(request);
       
-      // Sucesso!
       Alert.alert(
         'Sucesso!',
         'Sua conta foi criada. Você será redirecionado para o login.',
         [
-          { text: 'OK', onPress: () => navigation.login() } // Navega para o login
+          { text: 'OK', onPress: () => navigation.login() },
         ]
       );
-
     } catch (error: any) {
-      if(axios.isAxiosError(error) && error.response?.status === 409){
+      if (error.response && error.response.status === 409) {
         Alert.alert('Erro no Cadastro', 'Email já cadastrado. Por favor, use outro email.');
-      }else{
-      Alert.alert('Erro no Cadastro', error.message);
+      } else {
+        Alert.alert('Erro no Cadastro', 'Não foi possível realizar o cadastro.');
       }
     } finally {
-      // 6. Para o loading, independente de sucesso ou falha
       setLoading(false);
     }
   };
@@ -127,19 +104,17 @@ const RegisterScreen = () => {
           <View style={styles.card}>
             <Text style={styles.title}>Criar Conta</Text>
 
-            <TextInput
-              style={styles.input}
+            <Input
+              label="Nome completo"
               placeholder="Nome completo"
-              placeholderTextColor="#9E9E9E"
               value={nome}
               onChangeText={setNome}
-              editable={!loading} // Não deixa editar enquanto carrega
+              editable={!loading}
             />
 
-            <TextInput
-              style={styles.input}
+            <Input
+              label="Email"
               placeholder="Insira o seu melhor email"
-              placeholderTextColor="#9E9E9E"
               keyboardType="email-address"
               value={email}
               onChangeText={setEmail}
@@ -147,18 +122,16 @@ const RegisterScreen = () => {
               editable={!loading}
             />
 
-            <TextInput
-              style={styles.input}
+            <Input
+              label="Senha"
               placeholder="Crie uma senha"
-              placeholderTextColor="#9E9E9E"
               secureTextEntry={true}
               value={password}
-              onChangeText={handlePasswordChange}    // <-- ALTERADO
-              onFocus={() => setIsPasswordFocused(true)} // <-- NOVO
+              onChangeText={handlePasswordChange}
+              onFocus={() => setIsPasswordFocused(true)}
               editable={!loading}
             />
 
-            {/* --- NOVA CAIXA DE VALIDAÇÃO DE SENHA --- */}
             {(isPasswordFocused || password.length > 0) && (
               <View style={styles.validationContainer}>
                 <Text style={[styles.validationText, validation.hasLength ? styles.validationTextValid : styles.validationTextInvalid]}>
@@ -178,20 +151,16 @@ const RegisterScreen = () => {
                 </Text>
               </View>
             )}
-            {/* --- FIM DA CAIXA DE VALIDAÇÃO --- */}
 
-
-            <TextInput
-              style={styles.input}
+            <Input
+              label="Confirmar Senha"
               placeholder="Confirme a senha"
-              placeholderTextColor="#9E9E9E"
               secureTextEntry={true}
               value={confirmPassword}
               onChangeText={setConfirmPassword}
               editable={!loading}
             />
 
-            {/* --- SELETOR DE ROLE --- */}
             <Text style={styles.label}>Tipo de Conta:</Text>
             <View style={styles.roleContainer}>
               <TouchableOpacity
@@ -225,24 +194,21 @@ const RegisterScreen = () => {
                 </Text>
               </TouchableOpacity>
             </View>
-            {/* --- FIM DO SELETOR DE ROLE --- */}
 
-            <TouchableOpacity 
-              style={[styles.button, loading && styles.buttonDisabled]} // Estilo de botão desabilitado
-              onPress={handleRegister} // Chama a função de cadastro
-              disabled={loading} // Desabilita o botão durante o loading
-            >
-              <Text style={styles.buttonText}>
-                {loading ? 'Cadastrando...' : 'Cadastrar'}
-              </Text>
-            </TouchableOpacity>
+            <Button
+              title={loading ? 'Cadastrando...' : 'Cadastrar'}
+              onPress={handleRegister}
+              loading={loading}
+              disabled={loading}
+              style={styles.button}
+            />
           </View>
         </View>
       </ScrollView>
 
       <View style={styles.footer}>
         <Text style={styles.footerText}>Já possui uma conta? </Text>
-        <TouchableOpacity onPress={navigation.login}>
+        <TouchableOpacity onPress={navigation.login} disabled={loading}>
           <Text style={styles.footerLink}>Entre</Text>
         </TouchableOpacity>
       </View>
@@ -250,7 +216,6 @@ const RegisterScreen = () => {
   );
 };
 
-// --- ESTILOS (com adições para o seletor de Role) ---
 const styles = StyleSheet.create({
   container: {
     flex: 1,
@@ -290,24 +255,12 @@ const styles = StyleSheet.create({
     color: '#003F72',
     textAlign: 'center',
     marginBottom: 30,
-    fontFamily: Platform.OS === 'ios' ? 'Roboto' : 'sans-serif',
   },
-  input: {
-    height: 50,
-    borderColor: '#D1D1D1',
-    borderWidth: 1,
-    borderRadius: 8,
-    paddingHorizontal: 15,
-    marginBottom: 15,
-    fontSize: 16,
-    backgroundColor: '#F9F9F9',
-  },
-
-  // --- NOVOS ESTILOS PARA VALIDAÇÃO DE SENHA ---
+  // Estilo do Input é aplicado dentro do componente
   validationContainer: {
     paddingHorizontal: 15,
     paddingVertical: 10,
-    marginBottom: 15, // Espaço antes do campo "Confirmar Senha"
+    marginBottom: 15,
     backgroundColor: '#F9F9F9',
     borderRadius: 8,
     borderWidth: 1,
@@ -315,18 +268,14 @@ const styles = StyleSheet.create({
   },
   validationText: {
     fontSize: 14,
-    lineHeight: 22, // Espaçamento entre as linhas
+    lineHeight: 22,
   },
   validationTextInvalid: {
-    color: '#D32F2F', // Um vermelho mais escuro
+    color: '#D32F2F',
   },
   validationTextValid: {
-    color: '#388E3C', // Um verde mais escuro
-    textDecorationLine: 'none', // Remove o 'line-through' para um visual mais limpo
+    color: '#388E3C',
   },
-  // --- FIM DOS NOVOS ESTILOS ---
-
-  // --- NOVOS ESTILOS PARA O SELETOR DE ROLE ---
   label: {
     fontSize: 16,
     color: '#333',
@@ -340,13 +289,13 @@ const styles = StyleSheet.create({
     marginBottom: 20,
   },
   roleButton: {
-    flex: 1, // Faz os botões dividirem o espaço
+    flex: 1,
     paddingVertical: 12,
     borderRadius: 8,
     borderWidth: 1,
     borderColor: '#D1D1D1',
     alignItems: 'center',
-    marginHorizontal: 5, // Espaço entre os botões
+    marginHorizontal: 5,
   },
   roleButtonActive: {
     backgroundColor: '#003F72',
@@ -360,21 +309,9 @@ const styles = StyleSheet.create({
   roleTextActive: {
     color: 'white',
   },
-  // --- FIM DOS NOVOS ESTILOS ---
   button: {
     backgroundColor: '#3FA9F5',
-    paddingVertical: 15,
-    borderRadius: 8,
-    alignItems: 'center',
     marginTop: 10,
-  },
-  buttonDisabled: { // Estilo para botão desabilitado
-    backgroundColor: '#B0DFFF',
-  },
-  buttonText: {
-    color: 'white',
-    fontSize: 18,
-    fontWeight: 'bold',
   },
   footer: {
     paddingVertical: 20,

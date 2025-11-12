@@ -1,46 +1,45 @@
-import React, { useState, useEffect } from "react";
-import {
-    ScrollView,
-    Text,
-    View,
-    TextInput,
-    TouchableOpacity,
-    StyleSheet,
-    ActivityIndicator,
-    Alert,
-    Platform,
-} from "react-native";
 import { Picker } from '@react-native-picker/picker';
+import React, { useEffect, useState } from "react";
+import {
+    Alert,
+    ScrollView,
+    StyleSheet,
+    Text,
+    View
+} from "react-native";
 
 // Importações de tipos e serviço
-import TurmaService from "@/src/shared/services/turma";
 import { TurmaRequest, TurmaResponse } from "@/src/core/types/turma";
-// Importações de Enums (assumindo que estão acessíveis e são strings/números simples)
-import { DiaPadrao } from "@/src/shared/enums/diaPadrao"; // Assumindo que este enum existe
-// Nota: 'StatusPadrao' não é necessário no 'TurmaRequest'
+import { DiaPadrao } from "@/src/shared/enums/diaPadrao";
+import TurmaService from "@/src/shared/services/turma";
+
+// Importando hooks e componentes de UI
+import { Button } from "@/src/shared/components/ui/button";
+import { Header } from "@/src/shared/components/ui/header";
+import { Input } from "@/src/shared/components/ui/input";
+import { ScreenContainer } from "@/src/shared/components/ui/screenContainer";
+import { Spinner } from "@/src/shared/components/ui/spinner";
+import { formatTitleCase } from "@/src/shared/resources/formatters/fortmatTitleCase";
 
 interface TurmaFormProps {
-    turmaId?: number; // Opcional: Se fornecido, a tela é para EDIÇÃO
-    onSuccess: (turma: TurmaResponse) => void; // Callback após sucesso (criação/edição)
-    onCancel: () => void; // Callback para cancelar e voltar
+    turmaId?: number;
+    onSuccess: (turma: TurmaResponse) => void;
+    onCancel: () => void;
 }
 
-// Valores fixos para o Picker, baseados em DiaPadrao
 const diasPadraoOptions = Object.values(DiaPadrao); 
 
 const TurmaFormScreen = ({ turmaId, onSuccess, onCancel }: TurmaFormProps) => {
-    // Inicializa o estado com a estrutura de TurmaRequest
     const [formData, setFormData] = useState<TurmaRequest>({
         nome: "",
         faixaEtaria: "",
-        // Escolhe o primeiro dia do enum como valor inicial
         diaPadrao: diasPadraoOptions[0] as DiaPadrao, 
     });
 
-    const [loading, setLoading] = useState(false);
+    const [loading, setLoading] = useState(false); // Para carregar dados
+    const [saving, setSaving] = useState(false); // Para salvar/criar
     const [isEditing, setIsEditing] = useState(false);
 
-    // Efeito para carregar dados da turma se for uma EDIÇÃO
     useEffect(() => {
         if (turmaId) {
             setIsEditing(true);
@@ -49,7 +48,6 @@ const TurmaFormScreen = ({ turmaId, onSuccess, onCancel }: TurmaFormProps) => {
                 try {
                     const data = await TurmaService.returnTurmaById(turmaId);
                     if (data) {
-                        // Mapeia TurmaResponse para TurmaRequest
                         setFormData({
                             nome: data.nome,
                             faixaEtaria: data.faixaEtaria,
@@ -70,27 +68,26 @@ const TurmaFormScreen = ({ turmaId, onSuccess, onCancel }: TurmaFormProps) => {
         }
     }, [turmaId, onCancel]);
 
-    // Manipulador de mudança de input
     const handleChange = (key: keyof TurmaRequest, value: string | DiaPadrao) => {
         setFormData(prev => ({ ...prev, [key]: value }));
     };
     
-    // Manipulador do formulário
     const handleSubmit = async () => {
-        setLoading(true);
+        if (!formData.nome || !formData.faixaEtaria) {
+            Alert.alert("Erro", "Nome e Faixa Etária são obrigatórios.");
+            return;
+        }
+
+        setSaving(true);
         try {
             let response: TurmaResponse | undefined;
 
             if (isEditing && turmaId) {
-                // EDIÇÃO
                 response = await TurmaService.updateTurma(turmaId, formData);
                 if (response) {
                     Alert.alert("Sucesso", "Turma atualizada com sucesso!");
                 }
             } else {
-                // CRIAÇÃO
-                // Usando 'createTurmaSemAula' para evitar a criação automática de aulas, 
-                // caso a API ofereça essa opção. Se não, use 'createTurma'.
                 response = await TurmaService.createTurma(formData); 
                 if (response) {
                     Alert.alert("Sucesso", "Turma criada com sucesso!");
@@ -100,109 +97,91 @@ const TurmaFormScreen = ({ turmaId, onSuccess, onCancel }: TurmaFormProps) => {
             if (response) {
                 onSuccess(response);
             } else {
-                // Se o service retornou 'undefined' (por causa do catch interno)
-                Alert.alert("Erro", `Não foi possível ${isEditing ? 'atualizar' : 'criar'} a turma. Verifique o console.`);
+                Alert.alert("Erro", `Não foi possível ${isEditing ? 'atualizar' : 'criar'} a turma.`);
             }
 
         } catch (err) {
             console.error("Erro ao submeter o formulário de turma:", err);
             Alert.alert("Erro de API", `Falha ao ${isEditing ? 'atualizar' : 'criar'} a turma.`);
         } finally {
-            setLoading(false);
+            setSaving(false);
         }
     };
 
-    if (loading && isEditing) {
+    if (loading) {
         return (
-            <View style={styles.center}>
-                <ActivityIndicator size="large" color="#007bff" />
+            <ScreenContainer style={styles.center}>
+                <Spinner size="large" />
                 <Text>Carregando dados para edição...</Text>
-            </View>
+            </ScreenContainer>
         );
     }
 
     return (
-        <ScrollView style={styles.container}>
-            <Text style={styles.title}>
-                {isEditing ? `Editar Turma (ID: ${turmaId})` : "Nova Turma"}
-            </Text>
-
-            {/* Nome */}
-            <Text style={styles.label}>Nome:</Text>
-            <TextInput
-                style={styles.input}
-                value={formData.nome}
-                onChangeText={text => handleChange('nome', text)}
-                placeholder="Ex: Ballet Infantil - Manhã"
-                autoCapitalize="words"
+        <ScreenContainer>
+            <Header
+                title={isEditing ? `Editar Turma` : "Nova Turma"}
+                onBack={onCancel}
             />
+            <ScrollView style={styles.container}>
+                <Input
+                    label="Nome:"
+                    value={formData.nome}
+                    onChangeText={text => handleChange('nome', text)}
+                    placeholder="Ex: Ballet Infantil - Manhã"
+                    autoCapitalize="words"
+                    editable={!saving}
+                />
 
-            {/* Faixa Etária */}
-            <Text style={styles.label}>Faixa Etária:</Text>
-            <TextInput
-                style={styles.input}
-                value={formData.faixaEtaria}
-                onChangeText={text => handleChange('faixaEtaria', text)}
-                placeholder="Ex: 5-8 anos"
-                autoCapitalize="none"
-            />
+                <Input
+                    label="Faixa Etária:"
+                    value={formData.faixaEtaria}
+                    onChangeText={text => handleChange('faixaEtaria', text)}
+                    placeholder="Ex: 5-8 anos"
+                    autoCapitalize="none"
+                    editable={!saving}
+                />
 
-            {/* Dia Padrão */}
-            <Text style={styles.label}>Dia Padrão:</Text>
-            <View style={styles.pickerContainer}>
-                <Picker
-                    selectedValue={formData.diaPadrao}
-                    onValueChange={(itemValue) => handleChange('diaPadrao', itemValue as DiaPadrao)}
-                    style={styles.picker}
-                >
-                    {diasPadraoOptions.map(dia => (
-                        <Picker.Item key={dia} label={dia} value={dia} />
-                    ))}
-                </Picker>
-            </View>
+                <Text style={styles.label}>Dia Padrão:</Text>
+                <View style={styles.pickerContainer}>
+                    <Picker
+                        selectedValue={formData.diaPadrao}
+                        onValueChange={(itemValue) => handleChange('diaPadrao', itemValue as DiaPadrao)}
+                        style={styles.picker}
+                        enabled={!saving}
+                    >
+                        {diasPadraoOptions.map(dia => (
+                            <Picker.Item key={dia} label={formatTitleCase(dia)} value={dia} />
+                        ))}
+                    </Picker>
+                </View>
 
-            {/* Botões */}
-            <View style={styles.buttonGroup}>
-                <TouchableOpacity 
-                    style={[styles.button, styles.cancelButton]} 
-                    onPress={onCancel}
-                    disabled={loading}
-                >
-                    <Text style={styles.buttonText}>Cancelar</Text>
-                </TouchableOpacity>
-
-                <TouchableOpacity 
-                    style={styles.button} 
-                    onPress={handleSubmit}
-                    disabled={loading}
-                >
-                    {loading ? (
-                        <ActivityIndicator color="#fff" />
-                    ) : (
-                        <Text style={styles.buttonText}>
-                            {isEditing ? "Salvar Alterações" : "Criar Turma"}
-                        </Text>
-                    )}
-                </TouchableOpacity>
-            </View>
-
-        </ScrollView>
+                <View style={styles.buttonGroup}>
+                    <Button
+                        title="Cancelar"
+                        onPress={onCancel}
+                        disabled={saving}
+                        variant="ghost"
+                        style={styles.button}
+                    />
+                    <Button
+                        title={isEditing ? "Salvar Alterações" : "Criar Turma"}
+                        onPress={handleSubmit}
+                        loading={saving}
+                        disabled={saving}
+                        style={styles.button}
+                        variant={isEditing ? "warning" : "success"}
+                    />
+                </View>
+            </ScrollView>
+        </ScreenContainer>
     );
 };
 
-// --- Estilos ---
 const styles = StyleSheet.create({
     container: {
         flex: 1,
-        backgroundColor: '#f4f4f8',
         padding: 20,
-    },
-    title: {
-        fontSize: 24,
-        fontWeight: 'bold',
-        color: '#333',
-        marginBottom: 20,
-        textAlign: 'center',
     },
     label: {
         fontSize: 16,
@@ -210,28 +189,18 @@ const styles = StyleSheet.create({
         marginBottom: 5,
         fontWeight: '500',
     },
-    input: {
-        backgroundColor: '#ffffff',
-        padding: 10,
-        borderRadius: 5,
-        marginBottom: 15,
-        borderWidth: 1,
-        borderColor: '#ddd',
-        fontSize: 16,
-        color: '#333',
-    },
     pickerContainer: {
         backgroundColor: '#ffffff',
-        borderRadius: 5,
+        borderRadius: 8,
         marginBottom: 15,
         borderWidth: 1,
-        borderColor: '#ddd',
-        // Ajuste para Android/iOS para garantir que o Picker se comporte bem
-        ...(Platform.OS === 'ios' ? { overflow: 'hidden' } : {}), 
+        borderColor: '#D1D1D1',
+        overflow: 'hidden', // Para bordas arredondadas no iOS
     },
     picker: {
         height: 50,
         width: '100%',
+        backgroundColor: '#F9F9F9'
     },
     buttonGroup: {
         flexDirection: 'row',
@@ -240,20 +209,7 @@ const styles = StyleSheet.create({
     },
     button: {
         flex: 1,
-        padding: 15,
-        borderRadius: 8,
-        backgroundColor: '#007bff',
-        alignItems: 'center',
-        justifyContent: 'center',
         marginHorizontal: 5,
-    },
-    cancelButton: {
-        backgroundColor: '#6c757d',
-    },
-    buttonText: {
-        color: '#fff',
-        fontWeight: 'bold',
-        fontSize: 16,
     },
     center: {
         flex: 1,

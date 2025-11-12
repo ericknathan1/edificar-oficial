@@ -1,39 +1,44 @@
-import React, { useCallback, useEffect, useState } from "react";
+import { TurmaResponse } from "@/src/core/types/turma";
+import { formatTitleCase } from "@/src/shared/resources/formatters/fortmatTitleCase";
+import React, { useState } from "react";
 import {
-    ActivityIndicator,
     FlatList,
-    SafeAreaView,
     StyleSheet,
     Text,
     TouchableOpacity,
     View
 } from "react-native";
 
-// Importando os componentes de tela e o serviço
-import { TurmaResponse } from "@/src/core/types/turma";
-import TurmaService from "@/src/shared/services/turma";
+// Importando hooks e componentes de UI
+import { Button } from "@/src/shared/components/ui/button";
+import { Card } from "@/src/shared/components/ui/card";
+import { Fab } from "@/src/shared/components/ui/fab";
+import { ScreenContainer } from "@/src/shared/components/ui/screenContainer";
+import { Spinner } from "@/src/shared/components/ui/spinner";
+import { useTurmas } from "@/src/shared/hooks/useTurmas";
 
-// NOVAS TELAS INTEGRADAS
-import { formatTitleCase } from "@/src/shared/resources/formatters/fortmatTitleCase";
-import TurmaDetalheScreen from "./turmaDetalhe"; // Assumindo que você as salvou no mesmo diretório
-import TurmaFormScreen from "./turmaForm"; // Assumindo que você as salvou no mesmo diretório
+// Importando as sub-telas
+import TurmaDetalheScreen from "./turmaDetalhe";
+import TurmaFormScreen from "./turmaForm";
 
-// --- Enum para Gerenciamento de Estado da Tela ---
+// Enum para Gerenciamento de Estado da Tela
 enum ScreenState {
-    LISTA,      // Mostrar a lista de turmas
-    DETALHE,    // Mostrar detalhes de uma turma
-    FORM_NEW,   // Formulário para criar nova turma
-    FORM_EDIT   // Formulário para editar turma existente
+    LISTA,
+    DETALHE,
+    FORM_NEW,
+    FORM_EDIT
 }
 
-// --- Componente de Item da Lista (Atualizado para ser clicável) ---
+// Componente de Item da Lista
 interface TurmaItemProps {
     item: TurmaResponse;
-    onPress: (id: number) => void; // Novo prop para lidar com o clique
+    onPress: (id: number) => void;
 }
 
 const TurmaItem = ({ item, onPress }: TurmaItemProps) => (
-    <TouchableOpacity style={styles.itemContainer} onPress={() => onPress(item.id)}>
+    // Usando o componente Card
+    <Card style={styles.itemContainer}>
+      <TouchableOpacity onPress={() => onPress(item.id)}>
         <Text style={styles.itemName}>{item.nome}</Text>
         <View style={styles.itemDetails}>
             <Text style={styles.itemText}>Dia: {formatTitleCase(item.diaPadrao)}</Text>
@@ -41,61 +46,34 @@ const TurmaItem = ({ item, onPress }: TurmaItemProps) => (
             <Text style={styles.itemText}>Status: {formatTitleCase(item.statusPadrao)}</Text>
         </View>
         <Text style={styles.viewMoreText}>VER DETALHES</Text>
-    </TouchableOpacity>
+      </TouchableOpacity>
+    </Card>
 );
 
-// --- Componente da Tela Principal (Agora Gerenciador de Telas) ---
+// Componente da Tela Principal (Gerenciador de Telas)
 const TurmaScreen = () => {
-    const [turmas, setTurmas] = useState<TurmaResponse[]>([]);
-    const [loading, setLoading] = useState(true);
-    const [error, setError] = useState<string | null>(null);
-
-    // ESTADOS PARA CONTROLE DE NAVEGAÇÃO
+    // ESTADOS PARA CONTROLE DE NAVEGAÇÃO INTERNA
     const [currentScreen, setCurrentScreen] = useState(ScreenState.LISTA);
     const [selectedTurmaId, setSelectedTurmaId] = useState<number | undefined>(undefined);
     
-    // Função para carregar os dados (reutilizável)
-    const carregarTurmas = useCallback(async () => {
-        setLoading(true);
-        setError(null);
-        try {
-            const data = await TurmaService.returnTurmasAtivas();
-            if (data) {
-                setTurmas(data);
-            } else {
-                setError("Não foi possível carregar as turmas.");
-            }
-        } catch (err) {
-            console.error("Erro na tela TurmaScreen:", err);
-            setError("Ocorreu um erro ao buscar os dados.");
-        } finally {
-            setLoading(false);
-        }
-    }, []);
-
-    // Carrega dados na montagem e sempre que for para a lista
-    useEffect(() => {
-        if (currentScreen === ScreenState.LISTA) {
-            carregarTurmas();
-        }
-    }, [currentScreen, carregarTurmas]);
-
+    // ** REFATORAÇÃO PRINCIPAL **
+    // Substitui useState, useEffect e carregarTurmas pelo hook
+    const { turmas, isLoading, error, refetch } = useTurmas();
 
     // --- Funções de Navegação e Handlers ---
     
-    // Ação ao clicar em um item da lista
     const handleTurmaPress = (id: number) => {
         setSelectedTurmaId(id);
         setCurrentScreen(ScreenState.DETALHE);
     };
 
-    // Ação após sucesso na criação/edição
     const handleOperationSuccess = () => {
-        // Volta para a lista e recarrega para ver a alteração/nova turma
         setSelectedTurmaId(undefined);
         setCurrentScreen(ScreenState.LISTA);
+        // O hook useTurmas já recarrega ao focar,
+        // mas podemos forçar se quisermos: refetch();
     };
-    // Ação ao cancelar ou voltar de Detalhe/Formulário
+    
     const handleCancel = () => {
         setSelectedTurmaId(undefined);
         setCurrentScreen(ScreenState.LISTA);
@@ -111,14 +89,12 @@ const TurmaScreen = () => {
     // 1. Tela de Detalhes
     if (currentScreen === ScreenState.DETALHE && selectedTurmaId) {
         return (
-            <SafeAreaView style={styles.fullScreenContainer}>
-                <TurmaDetalheScreen 
-                    turmaId={selectedTurmaId} 
-                    onBack={handleCancel} // Volta para a lista
-                    onEdit={goToEdit}     // Vai para o formulário de edição
-                    onDeleteSuccess={handleOperationSuccess} // NOVO: Volta para a lista após deletar
-                />
-            </SafeAreaView>
+            <TurmaDetalheScreen 
+                turmaId={selectedTurmaId} 
+                onBack={handleCancel}
+                onEdit={goToEdit}
+                onDeleteSuccess={handleOperationSuccess}
+            />
         );
     }
 
@@ -127,130 +103,88 @@ const TurmaScreen = () => {
         const idParaForm = currentScreen === ScreenState.FORM_EDIT ? selectedTurmaId : undefined;
         
         return (
-            <SafeAreaView style={styles.fullScreenContainer}>
-                <TurmaFormScreen
-                    turmaId={idParaForm}
-                    onSuccess={handleOperationSuccess} // Usa o callback unificado
-                    onCancel={handleCancel}
-                />
-            </SafeAreaView>
+            <TurmaFormScreen
+                turmaId={idParaForm}
+                onSuccess={handleOperationSuccess}
+                onCancel={handleCancel}
+            />
         );
     }
     
     // 3. Tela de Lista (Padrão e Estados de Carregamento/Erro)
     
-    if (loading) {
+    if (isLoading) {
         return (
-            <View style={styles.center}>
-                <ActivityIndicator size="large" color="#007bff" />
+            <ScreenContainer style={styles.center}>
+                <Spinner size="large" />
                 <Text>Carregando turmas...</Text>
-            </View>
+            </ScreenContainer>
         );
     }
 
     if (error) {
         return (
-            <View style={styles.center}>
+            <ScreenContainer style={styles.center}>
                 <Text style={styles.errorText}>{error}</Text>
-                {/* Botão para tentar recarregar */}
-                <TouchableOpacity style={styles.retryButton} onPress={carregarTurmas}>
-                    <Text style={styles.retryButtonText}>Tentar Novamente</Text>
-                </TouchableOpacity>
-            </View>
+                <Button title="Tentar Novamente" onPress={refetch} />
+            </ScreenContainer>
         );
     }
 
     // Renderização da Lista
     return (
-        <SafeAreaView style={styles.container}>
+        <ScreenContainer>
             <View style={styles.header}>
-                <Text style={styles.title}>Turmas: </Text>
-                <TouchableOpacity 
-                    style={styles.addButton} 
-                    onPress={() => setCurrentScreen(ScreenState.FORM_NEW)}
-                >
-                    <Text style={styles.addButtonText}>+ Nova Turma</Text>
-                </TouchableOpacity>
+                <Text style={styles.title}>Turmas</Text>
             </View>
             <FlatList
                 data={turmas}
-                // Agora passando a função de clique para o item
                 renderItem={({ item }) => <TurmaItem item={item} onPress={handleTurmaPress} />}
                 keyExtractor={item => item.id.toString()}
                 ListEmptyComponent={
-                    <View style={styles.center}>
+                    <View style={styles.centerList}>
                         <Text>Nenhuma turma encontrada.</Text>
                     </View>
                 }
-                ListFooterComponent={<View style={{ height: 20 }} />}
+                contentContainerStyle={turmas.length === 0 ? styles.center : {}}
+                ListFooterComponent={<View style={{ height: 80 }} />} // Espaço para o FAB
             />
-        </SafeAreaView>
+            {/* Botão flutuante para adicionar nova turma */}
+            <Fab onPress={() => setCurrentScreen(ScreenState.FORM_NEW)} />
+        </ScreenContainer>
     );
 }
 
-// --- Estilos ---
 const styles = StyleSheet.create({
-    fullScreenContainer: {
+    center: {
         flex: 1,
-        backgroundColor: '#f4f4f8',
+        justifyContent: 'center',
+        alignItems: 'center',
     },
-    container: {
-        flex: 1,
-        backgroundColor: '#f4f4f8',
+    centerList: { // Estilo para centralizar o "Nenhum item"
+        flexGrow: 1,
+        justifyContent: 'center',
+        alignItems: 'center',
     },
     header: {
-        flexDirection: 'row',
-        justifyContent: 'space-between',
-        alignItems: 'center',
         paddingHorizontal: 16,
         paddingTop: 20,
         paddingBottom: 10,
     },
     title: {
-        fontSize: 22,
+        fontSize: 28,
         fontWeight: 'bold',
         color: '#333',
-    },
-    addButton: {
-        backgroundColor: '#28a745',
-        paddingVertical: 8,
-        paddingHorizontal: 12,
-        borderRadius: 5,
-    },
-    addButtonText: {
-        color: '#fff',
-        fontWeight: 'bold',
-    },
-    center: {
-        flex: 1,
-        justifyContent: 'center',
-        alignItems: 'center',
     },
     errorText: {
         color: 'red',
         fontSize: 16,
         marginBottom: 10,
     },
-    retryButton: {
-        backgroundColor: '#007bff',
-        padding: 10,
-        borderRadius: 5,
-    },
-    retryButtonText: {
-        color: '#fff',
-        fontWeight: 'bold',
-    },
     itemContainer: {
-        backgroundColor: '#ffffff',
-        padding: 16,
+        // O Card já tem sombra e padding
         marginVertical: 8,
         marginHorizontal: 16,
-        borderRadius: 8,
-        shadowColor: "#000",
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.1,
-        shadowRadius: 3.84,
-        elevation: 5,
     },
     itemName: {
         fontSize: 18,

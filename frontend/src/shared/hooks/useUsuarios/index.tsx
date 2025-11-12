@@ -1,13 +1,14 @@
-import { useState, useCallback } from 'react';
-import { useFocusEffect } from 'expo-router';
 import { UsuarioResponse } from '@/src/core/types/usuario';
 import UserService from '@/src/shared/services/usuario';
+import { useFocusEffect } from 'expo-router';
+import { useCallback, useEffect, useState } from 'react'; // <--- ADICIONE O useEffect AQUI
 
 /**
  * Hook para buscar a lista de usuários ATIVOS.
  * Recarrega os dados automaticamente sempre que a tela ganha foco.
  */
 export const useUsuarios = () => {
+  // ... (código do useUsuarios sem alteração)
   const [usuarios, setUsuarios] = useState<UsuarioResponse[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);

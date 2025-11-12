@@ -1,80 +1,91 @@
+import { Button } from '@/src/shared/components/ui/button';
+import { Input } from '@/src/shared/components/ui/input';
+import { useNavigation } from '@/src/shared/constants/router';
+import { useAuth } from '@/src/shared/hooks/useAuth';
 import React, { useState } from 'react';
 import {
-  StyleSheet,
-  View,
-  Text,
-  TextInput,
-  TouchableOpacity,
-  SafeAreaView,
+  Alert,
+  Image,
   StatusBar,
-  Platform,
-  Image, // Importa Platform para checar o S.O.
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
 } from 'react-native';
-import LoginService from '../../../shared/services/auth/login/index';
-import { useNavigation } from '@/src/shared/constants/router';
 
-
-
-// Convenção do React: Componentes começam com letra maiúscula
 const LoginScreen = () => {
-
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [loading, setLoading] = useState(false); // Estado de loading local para o botão
   const navigation = useNavigation();
+  const { login } = useAuth(); // Pegar a função de login do hook
 
   const validarLogin = async () => {
-    if (email.length === 0) return
-    try{
-      await LoginService.validateUser(email,password);
-      console.log("Login feito com sucesso");
-      navigation.turmas();
-    }catch(e){
-      console.error("Erro ao logar: ", e);
+    if (!email || !password) {
+      Alert.alert('Erro', 'Por favor, preencha email e senha.');
+      return;
     }
-  }
 
+    setLoading(true);
+    try {
+      await login({ email: email, senha: password });
+      // A navegação agora é tratada pelo RootLayout,
+      // que reage à mudança no estado de autenticação.
+      // Não precisamos mais do navigation.turmas() aqui.
+    } catch (e: any) {
+      console.error("Erro ao logar: ", e);
+      Alert.alert('Erro no Login', 'Email ou senha inválidos. Tente novamente.');
+    } finally {
+      setLoading(false);
+    }
+  };
 
   return (
-    // SafeAreaView evita que o conteúdo fique atrás do "notch" (iOS)
+    // Usa ScreenContainer para um fundo padronizado (mas mantemos o estilo original do container)
     <View style={styles.container}>
-      {/* Configura a barra de status (relógio, bateria) para ter texto claro */}
       <StatusBar barStyle="light-content" backgroundColor={styles.container.backgroundColor} />
 
-      {/* View principal que centraliza o card */}
       <View style={styles.mainContent}>
-        {/* O card branco */}
         <View style={styles.card}>
-          {/* <Text style={styles.logo}>Edificar</Text> */}
-            <Image style={styles.logo} source={require("../../../../assets/images/logo.png")}/>
-          <TextInput
+          <Image style={styles.logo} source={require("../../../../assets/images/logo.png")} />
+          
+          {/* Componente Input customizado */}
+          <Input
+            label="Email"
             style={styles.input}
             placeholder="Insira o email ou nome de usuário"
-            placeholderTextColor="#9E9E9E" // Cor do texto de placeholder
-            keyboardType="email-address" // Mostra o teclado de email
+            keyboardType="email-address"
             value={email}
-            onChangeText={setEmail} // Atualiza o state 'email'
+            onChangeText={setEmail}
+            editable={!loading}
+            autoCapitalize="none"
           />
 
-          <TextInput
+          {/* Componente Input customizado */}
+          <Input
+            label="Senha"
             style={styles.input}
             placeholder="Insira a senha"
-            placeholderTextColor="#9E9E9E"
-            secureTextEntry={true} // Esconde a senha (pontinhos)
+            secureTextEntry={true}
             value={password}
-            onChangeText={setPassword} // Atualiza o state 'password'
+            onChangeText={setPassword}
+            editable={!loading}
           />
 
-          <TouchableOpacity onPress={validarLogin} style={styles.button}>
-            <Text style={styles.buttonText}>Entrar</Text>
-          </TouchableOpacity>
+          {/* Componente Button customizado */}
+          <Button
+            title="Entrar"
+            onPress={validarLogin}
+            style={styles.button}
+            loading={loading} // Passa o estado de loading
+            disabled={loading}
+          />
         </View>
       </View>
 
-      {/* Rodapé da tela */}
       <View style={styles.footer}>
         <Text style={styles.footerText}>Não possui uma conta? </Text>
-        {/* Usamos TouchableOpacity para o link ser clicável */}
-        <TouchableOpacity onPress={navigation.register}>
+        <TouchableOpacity onPress={navigation.register} disabled={loading}>
           <Text style={styles.footerLink}>Cadastre-se</Text>
         </TouchableOpacity>
       </View>
@@ -82,78 +93,50 @@ const LoginScreen = () => {
   );
 };
 
-// --- ESTILOS ---
-// Usar StyleSheet.create é melhor para performance
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#003F72', // Azul escuro do fundo
+    backgroundColor: '#003F72',
   },
   mainContent: {
-    flex: 1, // Faz esta View ocupar todo o espaço disponível (exceto o rodapé)
-    justifyContent: 'center', // Centraliza o card verticalmente
-    alignItems: 'center', // Centraliza o card horizontalmente
-    paddingHorizontal: 20, // Dá um respiro nas laterais
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingHorizontal: 20,
   },
   card: {
-    width: '100%', // O card ocupa 100% da largura do 'mainContent'
+    width: '100%',
     backgroundColor: 'white',
-    borderRadius: 16, // Bordas arredondadas
+    borderRadius: 16,
     paddingVertical: 35,
     paddingHorizontal: 25,
-    alignItems: 'center', // Faz os filhos (inputs, button) esticarem
-    // Sombra (iOS)
+    alignItems: 'stretch', // Alinha os inputs
     shadowColor: '#000',
-    shadowOffset: {
-      width: 0,
-      height: 4,
-    },
+    shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.30,
     shadowRadius: 4.65,
-    // Sombra (Android)
     elevation: 8,
   },
   logo: {
-    width: 300,
+    width: '100%', // Faz a logo se ajustar ao card
     height: 120,
-    resizeMode: 'contain'
+    resizeMode: 'contain',
+    alignSelf: 'center',
+    marginBottom: 20, // Espaço abaixo da logo
   },
   input: {
-    height: 50,
-    borderColor: '#D1D1D1', // Borda cinza clara
-    borderWidth: 1,
-    borderRadius: 8,
-    paddingHorizontal: 15,
+    // Estilos do Input já vêm do componente, mas podemos sobrescrever
     marginBottom: 15,
-    fontSize: 16,
-    backgroundColor: '#F9F9F9',
-    width: "100%" // Fundo do input levemente cinza
   },
   button: {
-    backgroundColor: '#3FA9F5', // Azul claro do botão
-    paddingVertical: 15,
-    borderRadius: 8,
-    alignItems: 'center',
     marginTop: 10,
     marginBottom: 20,
-    width: "100%"
-  },
-  buttonText: {
-    color: 'white',
-    fontSize: 18,
-    fontWeight: 'bold',
-  },
-  forgotPasswordButton: {
-    alignSelf: 'center', // Centraliza o link
-  },
-  forgotPasswordText: {
-    color: '#003F72', // Azul do link
-    fontSize: 14,
-    fontWeight: '600',
+    width: "100%",
+    backgroundColor: '#3FA9F5', // Cor específica do login
   },
   footer: {
     padding: 30,
-    flexDirection: 'row', // Coloca os textos lado a lado
+    flexDirection: 'row',
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -165,7 +148,7 @@ const styles = StyleSheet.create({
     color: 'white',
     fontSize: 16,
     fontWeight: 'bold',
-    textDecorationLine: 'underline', // Sublinhado
+    textDecorationLine: 'underline',
   },
 });
 

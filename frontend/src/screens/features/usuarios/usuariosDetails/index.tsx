@@ -1,109 +1,152 @@
-import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, ActivityIndicator, Alert, TouchableOpacity, SafeAreaView } from 'react-native';
-import { UsuarioResponse } from '@/src/core/types/usuario';
 import UserService from '@/src/shared/services/usuario';
+import React, { useState } from 'react';
+import { Alert, StyleSheet, Text, View } from 'react-native';
 
-// Props que o componente pai (UsuarioScreen) vai passar
+// Importando hooks e componentes de UI
+import { AlertDialog } from '@/src/shared/components/ui/alertDialog';
+import { Button } from '@/src/shared/components/ui/button';
+import { Card } from '@/src/shared/components/ui/card';
+import { Header } from '@/src/shared/components/ui/header';
+import { ScreenContainer } from '@/src/shared/components/ui/screenContainer';
+import { Spinner } from '@/src/shared/components/ui/spinner';
+import { useUsuario } from '@/src/shared/hooks/useUsuarios';
+
 interface Props {
   usuarioId: number;
-  onBack: () => void; // Voltar para a lista
-  onEdit: (id: number) => void; // Ir para o formulário de edição
-  onDeleteSuccess: () => void; // Voltar para a lista após deletar
+  onBack: () => void;
+  onEdit: (id: number) => void;
+  onDeleteSuccess: () => void;
 }
 
-const UsuarioDetalheScreen = ({ usuarioId, onBack, onEdit, onDeleteSuccess }: Props) => {
-  const [loading, setLoading] = useState(true);
-  const [user, setUser] = useState<UsuarioResponse | null>(null);
 
-  useEffect(() => {
-    const fetchUser = async () => {
-      try {
-        setLoading(true);
-        const data = await UserService.returnUser(usuarioId);
-        setUser(data);
-      } catch (error) {
-        Alert.alert('Erro', 'Não foi possível carregar os dados do usuário.');
-        onBack();
-      } finally {
-        setLoading(false);
-      }
-    };
-    fetchUser();
-  }, [usuarioId, onBack]);
+
+const UsuarioDetalheScreen = ({ usuarioId, onBack, onEdit, onDeleteSuccess }: Props) => {
+  // ** REFATORAÇÃO PRINCIPAL **
+  const { usuario: user, isLoading, error, refetch } = useUsuario(usuarioId);
+  const [isDeleting, setIsDeleting] = useState(false);
+  const [isDeleteAlertVisible, setIsDeleteAlertVisible] = useState(false);
 
   const handleDelete = () => {
-    Alert.alert(
-      'Confirmar Exclusão',
-      `Tem certeza que deseja apagar o usuário "${user?.nome}"? Esta ação mudará o status para APAGADO.`,
-      [
-        { text: 'Cancelar', style: 'cancel' },
-        {
-          text: 'Apagar',
-          style: 'destructive',
-          onPress: async () => {
-            try {
-              await UserService.deleteUser(usuarioId);
-              Alert.alert('Sucesso', 'Usuário apagado.');
-              onDeleteSuccess(); // Chama o callback de sucesso
-            } catch (error) {
-              Alert.alert('Erro', 'Não foi possível apagar o usuário.');
-            }
-          },
-        },
-      ],
-    );
+    setIsDeleteAlertVisible(true);
   };
 
-  if (loading) {
-    return <View style={styles.center}><ActivityIndicator size="large" /></View>;
+  const confirmDelete = async () => {
+    if (!user) return;
+    setIsDeleteAlertVisible(false);
+    setIsDeleting(true);
+    try {
+      await UserService.deleteUser(user.id);
+      Alert.alert('Sucesso', 'Usuário apagado.');
+      onDeleteSuccess();
+    } catch (error) {
+      Alert.alert('Erro', 'Não foi possível apagar o usuário.');
+    } finally {
+      setIsDeleting(false);
+    }
+  };
+
+  if (isLoading) {
+    return (
+        <ScreenContainer style={styles.center}>
+            <Spinner size="large" />
+            <Text>Carregando usuário...</Text>
+        </ScreenContainer>
+    );
   }
 
-  if (!user) {
-    return <View style={styles.center}><Text>Usuário não encontrado.</Text></View>;
+  if (error || !user) {
+    return (
+        <ScreenContainer style={styles.center}>
+            <Text style={styles.errorText}>{error || 'Usuário não encontrado.'}</Text>
+            <Button title="Voltar" onPress={onBack} variant="ghost" />
+            <Button title="Tentar Novamente" onPress={refetch} />
+        </ScreenContainer>
+    );
   }
 
   return (
-    <SafeAreaView style={styles.fullScreenContainer}>
-      <View style={styles.header}>
-        <TouchableOpacity onPress={onBack} style={styles.backButton}>
-          <Text style={styles.backButtonText}>{"< Voltar"}</Text>
-        </TouchableOpacity>
-        <Text style={styles.title}>Detalhes do Usuário</Text>
-      </View>
+    <ScreenContainer>
+      <Header title="Detalhes do Usuário" onBack={onBack} />
       
-      <View style={styles.card}>
-        <Text style={styles.detailTitle}>{user.nome}</Text>
-        <Text style={styles.detail}>ID: {user.id}</Text>
-        <Text style={styles.detail}>Email: {user.email}</Text>
-        <Text style={styles.detail}>Roles: {user.roles.join(', ')}</Text>
+      <View style={styles.container}>
+        <Card style={styles.card}>
+            <Text style={styles.detailTitle}>{user.nome}</Text>
+            <Text style={styles.detail}>ID: {user.id}</Text>
+            <Text style={styles.detail}>Email: {user.email}</Text>
+            <Text style={styles.detail}>Cargos: {user.roles.join(', ')}</Text>
+            <Text style={styles.detail}>Status: {user.status}</Text>
+            
+            {/* --- LINHA ADICIONADA --- */}
+            <Text style={styles.detail}>
+              Membro desde: {new Date(user.dataCriacao).toLocaleDateString('pt-BR')}
+            </Text>
+            {/* --- FIM DA LINHA ADICIONADA --- */}
+
+        </Card>
+
+        <Button 
+            title="Editar" 
+            onPress={() => onEdit(user.id)} 
+            variant="warning"
+            style={styles.button}
+            disabled={isDeleting}
+        />
+        <Button 
+            title="Apagar"
+            onPress={handleDelete}
+            variant="danger"
+            style={styles.button}
+            loading={isDeleting}
+            disabled={isDeleting}
+        />
       </View>
 
-      <TouchableOpacity style={styles.button} onPress={() => onEdit(user.id)}>
-        <Text style={styles.buttonText}>Editar</Text>
-      </TouchableOpacity>
-      <TouchableOpacity
-        style={[styles.button, styles.deleteButton]}
-        onPress={handleDelete}>
-        <Text style={styles.buttonText}>Apagar (Soft Delete)</Text>
-      </TouchableOpacity>
-    </SafeAreaView>
+      <AlertDialog
+        visible={isDeleteAlertVisible}
+        title="Confirmar Exclusão"
+        message={`Tem certeza que deseja apagar o usuário "${user?.nome}"? Esta ação mudará o status para APAGADO.`}
+        confirmText="Apagar"
+        cancelText="Cancelar"
+        onConfirm={confirmDelete}
+        onCancel={() => setIsDeleteAlertVisible(false)}
+      />
+    </ScreenContainer>
   );
 };
 
-// (Use os estilos que defini na resposta anterior para detalhes)
 const styles = StyleSheet.create({
-    fullScreenContainer: { flex: 1, backgroundColor: '#f0f0f0' },
-    center: { flex: 1, justifyContent: 'center', alignItems: 'center' },
-    header: { flexDirection: 'row', alignItems: 'center', padding: 16 },
-    backButton: { padding: 8, marginRight: 16 },
-    backButtonText: { fontSize: 16, color: '#007bff' },
-    title: { fontSize: 22, fontWeight: 'bold' },
-    card: { backgroundColor: 'white', padding: 20, margin: 16, borderRadius: 10, elevation: 3 },
-    detailTitle: { fontSize: 24, fontWeight: 'bold', marginBottom: 15 },
-    detail: { fontSize: 18, color: '#333', marginBottom: 8 },
-    button: { backgroundColor: '#3FA9F5', padding: 15, borderRadius: 8, alignItems: 'center', marginHorizontal: 16, marginBottom: 10 },
-    deleteButton: { backgroundColor: '#D32F2F' },
-    buttonText: { color: 'white', fontSize: 16, fontWeight: 'bold' },
+    container: {
+        flex: 1,
+        padding: 16,
+    },
+    center: { 
+        flex: 1, 
+        justifyContent: 'center', 
+        alignItems: 'center' 
+    },
+    card: { 
+        padding: 20, 
+        marginBottom: 20,
+    },
+    detailTitle: { 
+        fontSize: 24, 
+        fontWeight: 'bold', 
+        marginBottom: 15 
+    },
+    detail: { 
+        fontSize: 18, 
+        color: '#333', 
+        marginBottom: 8 
+    },
+    button: { 
+        marginBottom: 10 
+    },
+    errorText: {
+        color: 'red',
+        fontSize: 16,
+        marginBottom: 15,
+        textAlign: 'center'
+    },
 });
 
 export default UsuarioDetalheScreen;

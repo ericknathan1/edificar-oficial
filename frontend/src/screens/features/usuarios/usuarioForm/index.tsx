@@ -1,24 +1,32 @@
-import React, { useState, useEffect } from 'react';
-import {
-  View, Text, TextInput, StyleSheet, ActivityIndicator,
-  Alert, TouchableOpacity, SafeAreaView, ScrollView
-} from 'react-native';
-import { UsuarioRequest, UsuarioSecurityRequest } from '@/src/core/types/usuario';
+import { UsuarioRequest } from '@/src/core/types/usuario';
 import UserService from '@/src/shared/services/usuario';
+import React, { useEffect, useState } from 'react';
+import {
+  Alert,
+  ScrollView,
+  StyleSheet,
+  Text
+} from 'react-native';
+
+// Importando hooks e componentes de UI
+import { Button } from '@/src/shared/components/ui/button';
+import { Header } from '@/src/shared/components/ui/header';
+import { Input } from '@/src/shared/components/ui/input';
+import { ScreenContainer } from '@/src/shared/components/ui/screenContainer';
+import { Spinner } from '@/src/shared/components/ui/spinner';
 
 interface Props {
-  usuarioId: number; // ID é obrigatório, pois não há "Criação" aqui
+  usuarioId: number;
   onSuccess: () => void;
   onCancel: () => void;
 }
 
 const UsuarioFormScreen = ({ usuarioId, onSuccess, onCancel }: Props) => {
-  const [loading, setLoading] = useState(true);
-  const [saving, setSaving] = useState(false);
+  const [loading, setLoading] = useState(true); // Para carregar dados
+  const [saving, setSaving] = useState(false); // Para salvar
   const [nome, setNome] = useState('');
   const [email, setEmail] = useState('');
 
-  // 1. Busca os dados do usuário para preencher o formulário
   useEffect(() => {
     const fetchUser = async () => {
       try {
@@ -38,24 +46,23 @@ const UsuarioFormScreen = ({ usuarioId, onSuccess, onCancel }: Props) => {
     fetchUser();
   }, [usuarioId, onCancel]);
 
-  // 2. Envia a atualização
   const handleSubmit = async () => {
     if (!nome || !email) {
       Alert.alert('Erro', 'Nome e Email são obrigatórios.');
       return;
     }
 
+    // O DTO de atualização do backend (UsuarioRequest) pede apenas nome e email
     const request: UsuarioRequest = {
       nome,
       email,
-      senha:null
     };
 
     try {
       setSaving(true);
       await UserService.updateUser(usuarioId, request);
       Alert.alert('Sucesso', 'Usuário atualizado com sucesso!');
-      onSuccess(); // Chama o callback de sucesso
+      onSuccess();
     } catch (error: any) {
       if (error.response && error.response.status === 409) {
         Alert.alert('Erro', 'Este email já está em uso por outra conta.');
@@ -68,30 +75,28 @@ const UsuarioFormScreen = ({ usuarioId, onSuccess, onCancel }: Props) => {
   };
 
   if (loading) {
-    return <View style={styles.center}><ActivityIndicator size="large" /></View>;
+    return (
+        <ScreenContainer style={styles.center}>
+            <Spinner size="large" />
+            <Text>Carregando...</Text>
+        </ScreenContainer>
+    );
   }
 
   return (
-    <SafeAreaView style={styles.fullScreenContainer}>
-      <View style={styles.header}>
-        <TouchableOpacity onPress={onCancel} style={styles.backButton}>
-          <Text style={styles.backButtonText}>{"< Cancelar"}</Text>
-        </TouchableOpacity>
-        <Text style={styles.title}>Editar Usuário</Text>
-      </View>
+    <ScreenContainer>
+      <Header title="Editar Usuário" onBack={onCancel} />
       <ScrollView style={styles.container}>
-        <Text style={styles.label}>Nome</Text>
-        <TextInput
-          style={styles.input}
+        <Input
+          label="Nome"
           value={nome}
           onChangeText={setNome}
           placeholder="Nome completo do usuário"
           editable={!saving}
         />
 
-        <Text style={styles.label}>Email</Text>
-        <TextInput
-          style={styles.input}
+        <Input
+          label="Email"
           value={email}
           onChangeText={setEmail}
           placeholder="email@exemplo.com"
@@ -100,33 +105,35 @@ const UsuarioFormScreen = ({ usuarioId, onSuccess, onCancel }: Props) => {
           editable={!saving}
         />
 
-        <TouchableOpacity
-          style={[styles.button, saving && styles.buttonDisabled]}
+        <Button
+          title={saving ? 'Salvando...' : 'Salvar Alterações'}
           onPress={handleSubmit}
-          disabled={saving}>
-          <Text style={styles.buttonText}>
-            {saving ? 'Salvando...' : 'Salvar Alterações'}
-          </Text>
-        </TouchableOpacity>
+          loading={saving}
+          disabled={saving}
+          variant="success"
+        />
+        <Button
+          title="Cancelar"
+          onPress={onCancel}
+          disabled={saving}
+          variant="ghost"
+          style={{marginTop: 10}}
+        />
       </ScrollView>
-    </SafeAreaView>
+    </ScreenContainer>
   );
 };
 
-// (Use os estilos que defini na resposta anterior para formulário)
 const styles = StyleSheet.create({
-    fullScreenContainer: { flex: 1, backgroundColor: '#f4f4f8' },
-    container: { flex: 1, padding: 20 },
-    center: { flex: 1, justifyContent: 'center', alignItems: 'center' },
-    header: { flexDirection: 'row', alignItems: 'center', padding: 16, backgroundColor: '#fff' },
-    backButton: { padding: 8, marginRight: 16 },
-    backButtonText: { fontSize: 16, color: '#007bff' },
-    title: { fontSize: 22, fontWeight: 'bold' },
-    label: { fontSize: 16, color: '#333', marginBottom: 8, fontWeight: '500' },
-    input: { height: 50, borderColor: '#D1D1D1', borderWidth: 1, borderRadius: 8, paddingHorizontal: 15, marginBottom: 20, fontSize: 16, backgroundColor: '#fff' },
-    button: { backgroundColor: '#003F72', padding: 15, borderRadius: 8, alignItems: 'center' },
-    buttonDisabled: { backgroundColor: '#A0A0A0' },
-    buttonText: { color: 'white', fontSize: 16, fontWeight: 'bold' },
+    container: { 
+        flex: 1, 
+        padding: 20 
+    },
+    center: { 
+        flex: 1, 
+        justifyContent: 'center', 
+        alignItems: 'center' 
+    },
 });
 
 export default UsuarioFormScreen;

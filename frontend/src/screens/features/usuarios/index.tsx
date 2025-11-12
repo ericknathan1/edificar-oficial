@@ -1,104 +1,79 @@
-import React, { useState, useEffect, useCallback } from "react";
+import { UsuarioResponse } from "@/src/core/types/usuario";
+import React, { useState } from "react";
 import {
     FlatList,
-    Text,
-    View,
     StyleSheet,
-    ActivityIndicator,
-    SafeAreaView,
-    TouchableOpacity
+    Text,
+    TouchableOpacity,
+    View
 } from "react-native";
-import { UsuarioResponse } from "@/src/core/types/usuario";
-import UserService from "@/src/shared/services/usuario";
+
+// Importando hooks e componentes de UI
+import { Button } from "@/src/shared/components/ui/button";
+import { Card } from "@/src/shared/components/ui/card";
+import { ScreenContainer } from "@/src/shared/components/ui/screenContainer";
+import { Spinner } from "@/src/shared/components/ui/spinner";
+import { useUsuarios } from "@/src/shared/hooks/useUsuarios";
 
 // Importando as telas filhas
-import UsuarioDetalheScreen from "./usuariosDetails";
 import UsuarioFormScreen from "./usuarioForm";
+import UsuarioDetalheScreen from "./usuariosDetails";
 
 // Enum para Gerenciamento de Estado da Tela
 enum ScreenState {
-    LISTA,   // Mostrar a lista de usuários
-    DETALHE, // Mostrar detalhes de um usuário
-    FORM_EDIT // Formulário para editar usuário existente
-    // (Sem FORM_NEW, pois o cadastro é feito na tela de Registro)
+    LISTA,
+    DETALHE,
+    FORM_EDIT
 }
 
-// Componente de Item da Lista (Clicável)
+// Componente de Item da Lista
 interface UsuarioItemProps {
     item: UsuarioResponse;
     onPress: (id: number) => void;
 }
 
 const UsuarioItem = ({ item, onPress }: UsuarioItemProps) => (
-    <TouchableOpacity style={styles.itemContainer} onPress={() => onPress(item.id)}>
+    <Card style={styles.itemContainer}>
+      <TouchableOpacity onPress={() => onPress(item.id)}>
         <Text style={styles.itemName}>{item.nome}</Text>
         <View style={styles.itemDetails}>
             <Text style={styles.itemText}>Email: {item.email}</Text>
             <Text style={styles.itemText}>Roles: {item.roles.join(', ')}</Text>
         </View>
         <Text style={styles.viewMoreText}>VER DETALHES</Text>
-    </TouchableOpacity>
+      </TouchableOpacity>
+    </Card>
 );
 
 // Componente da Tela Principal (Gerenciador de Telas)
 const UsuarioScreen = () => {
-    const [usuarios, setUsuarios] = useState<UsuarioResponse[]>([]);
-    const [loading, setLoading] = useState(true);
-    const [error, setError] = useState<string | null>(null);
-
     // ESTADOS PARA CONTROLE DE NAVEGAÇÃO
     const [currentScreen, setCurrentScreen] = useState(ScreenState.LISTA);
     const [selectedUsuarioId, setSelectedUsuarioId] = useState<number | undefined>(undefined);
     
-    // Função para carregar os dados (reutilizável)
-    const carregarUsuarios = useCallback(async () => {
-        setLoading(true);
-        setError(null);
-        try {
-            // Usamos o service de usuário para buscar ativos
-            const data = await UserService.returnActiveUsers();
-            if (data) {
-                setUsuarios(data);
-            } else {
-                setError("Não foi possível carregar os usuários.");
-            }
-        } catch (err) {
-            console.error("Erro na tela UsuarioScreen:", err);
-            setError("Ocorreu um erro ao buscar os dados.");
-        } finally {
-            setLoading(false);
-        }
-    }, []);
-
-    // Carrega dados na montagem e sempre que for para a lista
-    useEffect(() => {
-        if (currentScreen === ScreenState.LISTA) {
-            carregarUsuarios();
-        }
-    }, [currentScreen, carregarUsuarios]);
-
+    // ** REFATORAÇÃO PRINCIPAL **
+    // Substitui useState, useEffect e carregarUsuarios pelo hook
+    const { usuarios, isLoading, error, refetch } = useUsuarios();
 
     // --- Funções de Navegação e Handlers ---
     
-    // Ação ao clicar em um item da lista
     const handleUsuarioPress = (id: number) => {
         setSelectedUsuarioId(id);
         setCurrentScreen(ScreenState.DETALHE);
     };
 
-    // Ação após sucesso na edição ou delete
     const handleOperationSuccess = () => {
         setSelectedUsuarioId(undefined);
         setCurrentScreen(ScreenState.LISTA);
+        // O hook recarrega no focus, mas podemos forçar
+        refetch();
     };
     
-    // Ação ao cancelar ou voltar de Detalhe/Formulário
     const handleCancel = () => {
         setSelectedUsuarioId(undefined);
         setCurrentScreen(ScreenState.LISTA);
     };
 
-    // Ação para ir para edição (vinda da tela de Detalhes)
     const goToEdit = (id: number) => {
         setSelectedUsuarioId(id);
         setCurrentScreen(ScreenState.FORM_EDIT);
@@ -106,7 +81,6 @@ const UsuarioScreen = () => {
     
     // --- Renderização do Gerenciador de Telas ---
 
-    // 1. Tela de Detalhes
     if (currentScreen === ScreenState.DETALHE && selectedUsuarioId) {
         return (
             <UsuarioDetalheScreen 
@@ -118,7 +92,6 @@ const UsuarioScreen = () => {
         );
     }
 
-    // 2. Tela de Formulário (Apenas Edição)
     if (currentScreen === ScreenState.FORM_EDIT && selectedUsuarioId) {
         return (
             <UsuarioFormScreen
@@ -129,104 +102,74 @@ const UsuarioScreen = () => {
         );
     }
     
-    // 3. Tela de Lista (Padrão e Estados de Carregamento/Erro)
-    if (loading) {
+    if (isLoading) {
         return (
-            <View style={styles.center}>
-                <ActivityIndicator size="large" color="#007bff" />
+            <ScreenContainer style={styles.center}>
+                <Spinner size="large" />
                 <Text>Carregando usuários...</Text>
-            </View>
+            </ScreenContainer>
         );
     }
 
     if (error) {
         return (
-            <View style={styles.center}>
+            <ScreenContainer style={styles.center}>
                 <Text style={styles.errorText}>{error}</Text>
-                <TouchableOpacity style={styles.retryButton} onPress={carregarUsuarios}>
-                    <Text style={styles.retryButtonText}>Tentar Novamente</Text>
-                </TouchableOpacity>
-            </View>
+                <Button title="Tentar Novamente" onPress={refetch} />
+            </ScreenContainer>
         );
     }
 
     // Renderização da Lista
     return (
-        <SafeAreaView style={styles.container}>
+        <ScreenContainer>
             <View style={styles.header}>
                 <Text style={styles.title}>Usuários</Text>
-                {/* O botão "Novo Usuário" foi removido de propósito.
-                  A criação é feita pela tela de Registro.
-                */}
             </View>
             <FlatList
                 data={usuarios}
                 renderItem={({ item }) => <UsuarioItem item={item} onPress={handleUsuarioPress} />}
                 keyExtractor={item => item.id.toString()}
                 ListEmptyComponent={
-                    <View style={styles.center}>
+                    <View style={styles.centerList}>
                         <Text>Nenhum usuário ativo encontrado.</Text>
                     </View>
                 }
-                ListFooterComponent={<View style={{ height: 20 }} />}
+                contentContainerStyle={usuarios.length === 0 ? styles.center : {}}
             />
-        </SafeAreaView>
+        </ScreenContainer>
     );
 }
 
-// (Use os mesmos estilos do seu TurmaScreen)
 const styles = StyleSheet.create({
-    fullScreenContainer: {
+    center: {
         flex: 1,
-        backgroundColor: '#f4f4f8',
+        justifyContent: 'center',
+        alignItems: 'center',
     },
-    container: {
-        flex: 1,
-        backgroundColor: '#f4f4f8',
+    centerList: {
+        flexGrow: 1,
+        justifyContent: 'center',
+        alignItems: 'center',
     },
     header: {
-        flexDirection: 'row',
-        justifyContent: 'space-between',
-        alignItems: 'center',
         paddingHorizontal: 16,
         paddingTop: 20,
         paddingBottom: 10,
     },
     title: {
-        fontSize: 22,
+        fontSize: 28,
         fontWeight: 'bold',
         color: '#333',
-    },
-    center: {
-        flex: 1,
-        justifyContent: 'center',
-        alignItems: 'center',
     },
     errorText: {
         color: 'red',
         fontSize: 16,
         marginBottom: 10,
     },
-    retryButton: {
-        backgroundColor: '#007bff',
-        padding: 10,
-        borderRadius: 5,
-    },
-    retryButtonText: {
-        color: '#fff',
-        fontWeight: 'bold',
-    },
     itemContainer: {
-        backgroundColor: '#ffffff',
-        padding: 16,
         marginVertical: 8,
         marginHorizontal: 16,
-        borderRadius: 8,
-        shadowColor: "#000",
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.1,
-        shadowRadius: 3.84,
-        elevation: 5,
     },
     itemName: {
         fontSize: 18,
