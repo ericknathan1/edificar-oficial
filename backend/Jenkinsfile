@@ -32,17 +32,20 @@ pipeline {
 
         stage('Fazer Deploy') {
             steps {
-                script {
-                    def appName = 'edificar'
-                    def imageTag = "${appName}:${env.BUILD_ID}"
+                dir('backend') {
+                    script {
+                        def appName = 'edificar'
+                        def imageTag = "${appName}:${env.BUILD_ID}"
 
-                    // Parar e remover o container existente, se houver
-            		bat "docker stop ${appName} || exit 0"
-            		bat "docker rm -v ${appName} || exit 0"  // Remover o container e os volumes associados
+                        // Parar e remover o container existente
+                        bat "docker stop ${appName} || exit 0"
+                        bat "docker rm -v ${appName} || exit 0"
 
-                    // Executar o novo container
-                    //bat "docker-compose up -d --build"
-                }
+                        // Você parou e removeu o container, mas não iniciou o novo.
+                        // Você precisa adicionar o comando 'docker run' aqui.
+                        // Exemplo:
+                        // bat "docker run -d --name ${appName} -p 8080:8080 ${imageTag}"
+                    }
             }
         }
     }
