@@ -23,9 +23,10 @@ pipeline {
                 script {
                     def appName = 'edificar'
                     def imageTag = "${appName}:${env.BUILD_ID}"
-
-                    // Construir a imagem Docker
-                    bat "docker build -t ${imageTag} ."
+                    dir('backend') {
+                        // Construir a imagem Docker
+                        bat "docker build -t ${imageTag} ."
+                    }
                 }
             }
         }
@@ -37,9 +38,12 @@ pipeline {
                         def appName = 'edificar'
                         def imageTag = "${appName}:${env.BUILD_ID}"
 
-                        // Parar e remover o container existente
-                        bat "docker stop ${appName} || exit 0"
-                        bat "docker rm -v ${appName} || exit 0"
+                        dir('backend') {
+                            // Parar e remover o container existente
+                            bat "docker stop ${appName} || exit 0"
+                            bat "docker rm -v ${appName} || exit 0"
+                        }
+
 
                         // Você parou e removeu o container, mas não iniciou o novo.
                         // Você precisa adicionar o comando 'docker run' aqui.
