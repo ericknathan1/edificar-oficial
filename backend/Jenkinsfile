@@ -33,23 +33,22 @@ pipeline {
 
         stage('Fazer Deploy') {
             steps {
-                dir('backend') {
-                    script {
-                        def appName = 'edificar'
-                        def imageTag = "${appName}:${env.BUILD_ID}"
+                script {
+                    def appName = 'edificar'
+                    def imageTag = "${appName}:${env.BUILD_ID}"
 
-                        dir('backend') {
-                            // Parar e remover o container existente
-                            bat "docker stop ${appName} || exit 0"
-                            bat "docker rm -v ${appName} || exit 0"
-                        }
-
-
-                        // Você parou e removeu o container, mas não iniciou o novo.
-                        // Você precisa adicionar o comando 'docker run' aqui.
-                        // Exemplo:
-                        // bat "docker run -d --name ${appName} -p 8080:8080 ${imageTag}"
+                    dir('backend') {
+                        // Parar e remover o container existente
+                        bat "docker stop ${appName} || exit 0"
+                        bat "docker rm -v ${appName} || exit 0"
                     }
+
+
+                    // Você parou e removeu o container, mas não iniciou o novo.
+                    // Você precisa adicionar o comando 'docker run' aqui.
+                    // Exemplo:
+                    // bat "docker run -d --name ${appName} -p 8080:8080 ${imageTag}"
+                }
             }
         }
     }
