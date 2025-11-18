@@ -3,7 +3,6 @@ package com.app.edificar.service;
 import java.util.List;
 import java.util.stream.Collectors;
 
-import jakarta.transaction.Transactional;
 import org.modelmapper.ModelMapper;
 import org.springframework.stereotype.Service;
 
@@ -29,6 +28,8 @@ import com.app.edificar.repository.InscricaoRepository;
 import com.app.edificar.repository.LecionaRepository;
 import com.app.edificar.repository.TurmaRepository;
 import com.app.edificar.repository.UsuarioRepository;
+
+import jakarta.transaction.Transactional;
 
 @Service
 public class TurmaService {
@@ -99,6 +100,14 @@ public class TurmaService {
 
     public TurmaResponse turmaPorId(Long id){
         return modelMapper.map(this.turmaRepository.turmaPorId(id),TurmaResponse.class);
+    }
+
+    public List<TurmaResponse> retornarTurmasApagadas(){
+        List<Turma> turmas = this.turmaRepository.turmasApagadas();
+        List<TurmaResponse> responseList = turmas.stream().map(
+                turma -> modelMapper.map(turma,TurmaResponse.class)
+        ).collect(Collectors.toList());
+        return responseList;
     }
 
     // GET '/turmas'

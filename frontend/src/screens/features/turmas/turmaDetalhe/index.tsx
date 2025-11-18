@@ -7,8 +7,9 @@ import {
     View,
 } from "react-native";
 // Importações de tipos e serviço
+import { StatusAula } from "@/src/shared/enums/statusAula"; // Importar Enum de Status
+import { formatTitleCase } from '@/src/shared/resources/formatters/fortmatTitleCase';
 import TurmaService from "@/src/shared/services/turma";
-import { formatTitleCase } from '../../../../shared/resources/formatters/fortmatTitleCase/index';
 
 // Importando hooks e componentes de UI
 import { AlertDialog } from "@/src/shared/components/ui/alertDialog";
@@ -18,6 +19,7 @@ import { Header } from "@/src/shared/components/ui/header";
 import { ScreenContainer } from "@/src/shared/components/ui/screenContainer";
 import { Spinner } from "@/src/shared/components/ui/spinner";
 import { useTurmaDetalhes } from "@/src/shared/hooks/useTurmas";
+import { Ionicons } from "@expo/vector-icons"; // Importar ícones
 
 interface TurmaDetalheProps {
     turmaId: number;
@@ -27,14 +29,11 @@ interface TurmaDetalheProps {
 }
 
 const TurmaDetalheScreen = ({ turmaId, onEdit, onBack, onDeleteSuccess }: TurmaDetalheProps) => {
-    // ** REFATORAÇÃO PRINCIPAL **
-    // Substitui useState, useEffect e carregarDetalhesTurma pelo hook
     const { turma, professores, alunos, aulas, isLoading, error, refetch } = useTurmaDetalhes(turmaId);
     
     const [isDeleting, setIsDeleting] = useState(false);
     const [isDeleteAlertVisible, setIsDeleteAlertVisible] = useState(false);
 
-    // Lógica de Deletar Turma (agora usa o AlertDialog)
     const handleDelete = () => {
         setIsDeleteAlertVisible(true);
     };
@@ -45,7 +44,7 @@ const TurmaDetalheScreen = ({ turmaId, onEdit, onBack, onDeleteSuccess }: TurmaD
         try {
             await TurmaService.deleteTurma(turmaId);
             Alert.alert("Sucesso", "Turma deletada com sucesso.");
-            onDeleteSuccess(); // Volta para a lista
+            onDeleteSuccess();
         } catch (err) {
             console.error("Erro ao deletar turma:", err);
             Alert.alert("Erro", "Falha ao deletar a turma. Tente novamente.");
@@ -54,7 +53,17 @@ const TurmaDetalheScreen = ({ turmaId, onEdit, onBack, onDeleteSuccess }: TurmaD
         }
     };
 
-    // --- Renderização Condicional ---
+    // Função auxiliar para cor do status
+    const getStatusColor = (status: StatusAula) => {
+        switch (status) {
+            case StatusAula.AGENDADA: return '#007bff'; // Azul
+            case StatusAula.EM_ANDAMENTO: return '#28a745'; // Verde
+            case StatusAula.FINALIZADA: return '#6c757d'; // Cinza
+            case StatusAula.CANCELADA: return '#dc3545'; // Vermelho
+            default: return '#333';
+        }
+    };
+
     if (isLoading) {
         return (
             <ScreenContainer style={styles.center}>
@@ -74,68 +83,128 @@ const TurmaDetalheScreen = ({ turmaId, onEdit, onBack, onDeleteSuccess }: TurmaD
         );
     }
     
-    // --- Sub-componentes de Renderização ---
+    // --- Renderização das Aulas Melhorada ---
+    const renderAulas = () => (
+        <Card style={styles.section}>
+            <View style={styles.sectionHeader}>
+                <Text style={styles.sectionTitle}>Aulas ({aulas.length})</Text>
+                {/* Aqui você pode adicionar um botão "Ver Todas" ou "Adicionar Aula" futuramente */}
+            </View>
+            
+            {aulas.length > 0 ? (
+                aulas.map((aula, index) => {
+                    const dataAula = new Date(aula.data);
+                    const dia = dataAula.getDate();
+                    const mes = dataAula.toLocaleString('pt-BR', { month: 'short' }).replace('.', '').toUpperCase();
+
+                    return (
+                        <View key={aula.id} style={[
+                            styles.aulaItem, 
+                            index === aulas.length - 1 && { borderBottomWidth: 0 } // Remove borda do último item
+                        ]}>
+                            {/* Caixa da Data */}
+                            <View style={styles.dateBox}>
+                                <Text style={styles.dateDay}>{dia}</Text>
+                                <Text style={styles.dateMonth}>{mes}</Text>
+                            </View>
+
+                            {/* Conteúdo da Aula */}
+                            <View style={styles.aulaContent}>
+                                <Text style={styles.aulaTopic} numberOfLines={1}>
+                                    {aula.topico || "Sem tópico definido"}
+                                </Text>
+                                
+                                <View style={styles.aulaMetaRow}>
+                                    <View style={styles.metaItem}>
+                                        <Ionicons name="time-outline" size={14} color="#666" />
+                                        <Text style={styles.metaText}>
+                                            {aula.horaInicio ? aula.horaInicio.substring(0, 5) : '--:--'} - 
+                                            {aula.horafim ? aula.horafim.substring(0, 5) : '--:--'}
+                                        </Text>
+                                    </View>
+                                    
+                                    {/* Badge de Status */}
+                                    <View style={[styles.statusBadge, { backgroundColor: getStatusColor(aula.statusAula) + '15' }]}>
+                                        <Text style={[styles.statusText, { color: getStatusColor(aula.statusAula) }]}>
+                                            {aula.statusAula}
+                                        </Text>
+                                    </View>
+                                </View>
+                            </View>
+                        </View>
+                    );
+                })
+            ) : (
+                <View style={styles.emptyContainer}>
+                    <Ionicons name="calendar-outline" size={40} color="#ccc" />
+                    <Text style={styles.emptyText}>Nenhuma aula agendada.</Text>
+                </View>
+            )}
+        </Card>
+    );
+
     const renderProfessores = () => (
         <Card style={styles.section}>
             <Text style={styles.sectionTitle}>Professores ({professores.length})</Text>
             {professores.length > 0 ? (
                 professores.map((prof) => (
-                    <Text key={prof.id} style={styles.listItem}>
-                        • {prof.nome} ({prof.email})
-                    </Text>
+                    <View key={prof.id} style={styles.simpleListItem}>
+                        <Ionicons name="person-circle-outline" size={24} color="#555" />
+                        <Text style={styles.listItemText}>{prof.nome}</Text>
+                    </View>
                 ))
             ) : (
-                <Text style={styles.listItem}>Nenhum professor associado.</Text>
+                <Text style={styles.emptyText}>Nenhum professor associado.</Text>
             )}
         </Card>
     );
 
     const renderAlunos = () => (
         <Card style={styles.section}>
-            <Text style={styles.sectionTitle}>Alunos Matriculados ({alunos.length})</Text>
+            <Text style={styles.sectionTitle}>Alunos ({alunos.length})</Text>
             {alunos.length > 0 ? (
                 alunos.map((aluno) => (
-                    <Text key={aluno.id} style={styles.listItem}>
-                        • {aluno.nomeCompleto} (Resp: {aluno.contatoResponsavel})
-                    </Text>
+                    <View key={aluno.id} style={styles.simpleListItem}>
+                        <Ionicons name="school-outline" size={20} color="#555" />
+                        <View style={{marginLeft: 8}}>
+                            <Text style={styles.listItemText}>{aluno.nomeCompleto}</Text>
+                            <Text style={styles.subListItemText}>Responsavel: {aluno.contatoResponsavel}</Text>
+                        </View>
+                    </View>
                 ))
             ) : (
-                <Text style={styles.listItem}>Nenhum aluno matriculado.</Text>
+                <Text style={styles.emptyText}>Nenhum aluno matriculado.</Text>
             )}
         </Card>
     );
-
-    const renderAulas = () => (
-        <Card style={styles.section}>
-            <Text style={styles.sectionTitle}>Próximas Aulas ({aulas.length})</Text>
-            {aulas.length > 0 ? (
-                aulas.map((aula) => (
-                    <Text key={aula.id} style={styles.listItem}>
-                        • {new Date(aula.data).toLocaleDateString()} - {aula.horaInicio} ({aula.topico})
-                    </Text>
-                ))
-            ) : (
-                <Text style={styles.listItem}>Nenhuma aula agendada.</Text>
-            )}
-        </Card>
-    );
-
 
     return (
         <ScreenContainer>
-            {/* Componente Header customizado */}
             <Header title={turma.nome} onBack={onBack} />
             
             <ScrollView style={styles.container}>
                 <Card style={styles.detailsContainer}>
-                    <Text style={styles.detailText}><Text style={styles.detailLabel}>Faixa Etária:</Text> {turma.faixaEtaria}</Text>
-                    <Text style={styles.detailText}><Text style={styles.detailLabel}>Dia Padrão:</Text> {formatTitleCase(turma.diaPadrao)}</Text>
-                    <Text style={styles.detailText}><Text style={styles.detailLabel}>Status:</Text> {formatTitleCase(turma.statusPadrao)}</Text>
+                    <View style={styles.headerDetailRow}>
+                         <View>
+                            <Text style={styles.detailLabel}>Tema:</Text>
+                            <Text style={styles.detailValue}>{turma.faixaEtaria}</Text>
+                         </View>
+                         <View>
+                            <Text style={styles.detailLabel}>Dia Padrão</Text>
+                            <Text style={styles.detailValue}>{formatTitleCase(turma.diaPadrao)}</Text>
+                         </View>
+                         <View>
+                            <Text style={styles.detailLabel}>Status</Text>
+                            <Text style={[styles.detailValue, {color: turma.statusPadrao === 'ATIVO' ? 'green' : 'red'}]}>
+                                {formatTitleCase(turma.statusPadrao)}
+                            </Text>
+                         </View>
+                    </View>
                 </Card>
 
                 <View style={styles.actionButtons}>
                     <Button 
-                        title="Editar Turma" 
+                        title="Editar" 
                         onPress={() => onEdit(turma.id)} 
                         disabled={isDeleting}
                         variant="warning"
@@ -151,18 +220,17 @@ const TurmaDetalheScreen = ({ turmaId, onEdit, onBack, onDeleteSuccess }: TurmaD
                     />
                 </View>
                 
+                {renderAulas()}
                 {renderProfessores()}
                 {renderAlunos()}
-                {renderAulas()}
 
                 <View style={{ height: 40 }} />
             </ScrollView>
 
-            {/* Componente AlertDialog customizado */}
             <AlertDialog
                 visible={isDeleteAlertVisible}
                 title="Confirmar Exclusão"
-                message={`Tem certeza que deseja deletar a turma "${turma.nome}"? Esta ação não pode ser desfeita.`}
+                message={`Tem certeza que deseja deletar a turma "${turma.nome}"?`}
                 confirmText="Deletar"
                 cancelText="Cancelar"
                 onConfirm={confirmDelete}
@@ -188,37 +256,137 @@ const styles = StyleSheet.create({
         marginBottom: 20,
     },
     actionButton: {
-        flex: 1, // Faz os botões dividirem o espaço
-        marginHorizontal: 5, // Adiciona espaço entre eles
+        flex: 1,
+        marginHorizontal: 5,
     },
     detailsContainer: {
         marginBottom: 20,
+        paddingVertical: 20,
     },
-    detailText: {
-        fontSize: 16,
-        color: '#555',
-        marginBottom: 4,
+    headerDetailRow: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        paddingHorizontal: 10
     },
     detailLabel: {
+        fontSize: 12,
+        color: '#888',
+        textTransform: 'uppercase',
+        marginBottom: 4,
+        fontWeight: '600'
+    },
+    detailValue: {
+        fontSize: 16,
         fontWeight: 'bold',
-        color: '#333'
+        color: '#333',
     },
     section: {
         marginBottom: 20,
+        padding: 10, // Remove padding do Card para controlar internamente
+        overflow: 'hidden'
+    },
+    sectionHeader: {
+        padding: 16,
+        borderBottomWidth: 1,
+        borderBottomColor: '#f0f0f0',
+        backgroundColor: '#fafafa'
     },
     sectionTitle: {
-        fontSize: 18,
+        fontSize: 16,
         fontWeight: 'bold',
         color: '#444',
-        marginBottom: 10,
-        borderBottomWidth: 1,
-        borderBottomColor: '#eee',
-        paddingBottom: 5,
     },
-    listItem: {
-        fontSize: 15,
+    // Estilos para Aulas
+    aulaItem: {
+        flexDirection: 'row',
+        padding: 16,
+        borderBottomWidth: 1,
+        borderBottomColor: '#f0f0f0',
+        alignItems: 'center',
+    },
+    dateBox: {
+        width: 50,
+        height: 50,
+        borderRadius: 8,
+        backgroundColor: '#E6F4FE', // Azul claro suave
+        justifyContent: 'center',
+        alignItems: 'center',
+        marginRight: 12,
+    },
+    dateDay: {
+        fontSize: 18,
+        fontWeight: 'bold',
+        color: '#003F72', // Azul primário
+    },
+    dateMonth: {
+        fontSize: 10,
+        fontWeight: 'bold',
+        color: '#555',
+        marginTop: -2,
+    },
+    aulaContent: {
+        flex: 1,
+        justifyContent: 'center',
+    },
+    aulaTopic: {
+        fontSize: 16,
+        fontWeight: '600',
+        color: '#333',
+        marginBottom: 4,
+    },
+    aulaMetaRow: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+    },
+    metaItem: {
+        flexDirection: 'row',
+        alignItems: 'center',
+    },
+    metaText: {
+        fontSize: 13,
         color: '#666',
-        paddingVertical: 3,
+        marginLeft: 4,
+    },
+    statusBadge: {
+        paddingHorizontal: 8,
+        paddingVertical: 2,
+        borderRadius: 4,
+    },
+    statusText: {
+        fontSize: 10,
+        fontWeight: 'bold',
+    },
+    // Estilos Gerais de Lista
+    simpleListItem: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        paddingVertical: 12,
+        paddingHorizontal: 16,
+        borderBottomWidth: 1,
+        borderBottomColor: '#f0f0f0',
+    },
+    listItemText: {
+        fontSize: 15,
+        color: '#333',
+        marginLeft: 10,
+    },
+    subListItemText: {
+        fontSize: 12,
+        color: '#888',
+        marginLeft: 10,
+    },
+    emptyContainer: {
+        padding: 30,
+        alignItems: 'center',
+        justifyContent: 'center',
+    },
+    emptyText: {
+        color: '#999',
+        marginTop: 10,
+        textAlign: 'center',
+        fontStyle: 'italic',
+        padding: 16
     },
     errorText: {
         color: 'red',

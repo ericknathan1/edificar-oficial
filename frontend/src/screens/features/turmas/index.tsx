@@ -1,5 +1,6 @@
 import { TurmaResponse } from "@/src/core/types/turma";
 import { formatTitleCase } from "@/src/shared/resources/formatters/fortmatTitleCase";
+import { Ionicons } from '@expo/vector-icons';
 import React, { useState } from "react";
 import {
     FlatList,
@@ -15,53 +16,86 @@ import { Card } from "@/src/shared/components/ui/card";
 import { Fab } from "@/src/shared/components/ui/fab";
 import { ScreenContainer } from "@/src/shared/components/ui/screenContainer";
 import { Spinner } from "@/src/shared/components/ui/spinner";
-import { useTurmas } from "@/src/shared/hooks/useTurmas";
+// IMPORTANTE: Adicione o novo hook aqui
+import { StatusPadrao } from "@/src/shared/enums/statusPadrao";
+import { useTurmas, useTurmasApagadas } from "@/src/shared/hooks/useTurmas";
 
-// Importando as sub-telas
 import TurmaDetalheScreen from "./turmaDetalhe";
 import TurmaFormScreen from "./turmaForm";
 
-// Enum para Gerenciamento de Estado da Tela
 enum ScreenState {
     LISTA,
+    LISTA_APAGADAS, // <--- Novo Estado
     DETALHE,
     FORM_NEW,
     FORM_EDIT
 }
 
-// Componente de Item da Lista
+const getStatusColor = (status: StatusPadrao) => {
+    switch (status) {
+        case StatusPadrao.ATIVO: return '#28a745';
+        case StatusPadrao.INATIVO: return '#6c757d';
+        default: return '#dc3545';
+    }
+};
+
 interface TurmaItemProps {
     item: TurmaResponse;
     onPress: (id: number) => void;
 }
 
 const TurmaItem = ({ item, onPress }: TurmaItemProps) => (
-    // Usando o componente Card
     <Card style={styles.itemContainer}>
-      <TouchableOpacity onPress={() => onPress(item.id)}>
-        <Text style={styles.itemName}>{item.nome}</Text>
-        <View style={styles.itemDetails}>
-            <Text style={styles.itemText}>Dia: {formatTitleCase(item.diaPadrao)}</Text>
-            <Text style={styles.itemText}>Faixa Etária: {item.faixaEtaria}</Text>
-            <Text style={styles.itemText}>Status: {formatTitleCase(item.statusPadrao)}</Text>
+      <TouchableOpacity onPress={() => onPress(item.id)} activeOpacity={0.7}>
+        <View style={styles.itemHeader}>
+            <View style={[styles.iconContainer, item.statusPadrao === StatusPadrao.APAGADO && styles.iconContainerDeleted]}>
+                <Ionicons name={item.statusPadrao === StatusPadrao.APAGADO ? "trash" : "people"} size={24} color={item.statusPadrao === StatusPadrao.APAGADO ? "#dc3545" : "#003F72"} />
+            </View>
+            
+            <View style={styles.headerTextContainer}>
+                <Text style={styles.itemName} numberOfLines={1}>{item.nome}</Text>
+                <Text style={styles.itemSubtitle}>{item.faixaEtaria}</Text>
+            </View>
+
+            <View style={[styles.statusBadge, { backgroundColor: getStatusColor(item.statusPadrao) + '20' }]}>
+                <Text style={[styles.statusText, { color: getStatusColor(item.statusPadrao) }]}>
+                    {formatTitleCase(item.statusPadrao)}
+                </Text>
+            </View>
         </View>
-        <Text style={styles.viewMoreText}>VER DETALHES</Text>
+
+        <View style={styles.divider} />
+
+        <View style={styles.itemFooter}>
+            <View style={styles.infoRow}>
+                <Ionicons name="calendar-outline" size={16} color="#666" />
+                <Text style={styles.infoText}>{formatTitleCase(item.diaPadrao)}</Text>
+            </View>
+            
+            <View style={styles.arrowContainer}>
+                <Text style={styles.viewMoreText}>Detalhes</Text>
+                <Ionicons name="chevron-forward" size={16} color="#007bff" />
+            </View>
+        </View>
       </TouchableOpacity>
     </Card>
 );
 
-// Componente da Tela Principal (Gerenciador de Telas)
 const TurmaScreen = () => {
-    // ESTADOS PARA CONTROLE DE NAVEGAÇÃO INTERNA
     const [currentScreen, setCurrentScreen] = useState(ScreenState.LISTA);
     const [selectedTurmaId, setSelectedTurmaId] = useState<number | undefined>(undefined);
     
-    // ** REFATORAÇÃO PRINCIPAL **
-    // Substitui useState, useEffect e carregarTurmas pelo hook
-    const { turmas, isLoading, error, refetch } = useTurmas();
+    // Hooks para buscar dados (Ativas e Apagadas)
+    const { turmas: turmasAtivas, isLoading: loadingAtivas, error: errorAtivas, refetch: refetchAtivas } = useTurmas();
+    const { turmas: turmasApagadas, isLoading: loadingApagadas, error: errorApagadas, refetch: refetchApagadas } = useTurmasApagadas();
 
-    // --- Funções de Navegação e Handlers ---
-    
+    // Determina qual lista mostrar baseado no estado da tela
+    const isShowingDeleted = currentScreen === ScreenState.LISTA_APAGADAS;
+    const dataToShow = isShowingDeleted ? turmasApagadas : turmasAtivas;
+    const isLoading = isShowingDeleted ? loadingApagadas : loadingAtivas;
+    const error = isShowingDeleted ? errorApagadas : errorAtivas;
+    const refetch = isShowingDeleted ? refetchApagadas : refetchAtivas;
+
     const handleTurmaPress = (id: number) => {
         setSelectedTurmaId(id);
         setCurrentScreen(ScreenState.DETALHE);
@@ -70,12 +104,14 @@ const TurmaScreen = () => {
     const handleOperationSuccess = () => {
         setSelectedTurmaId(undefined);
         setCurrentScreen(ScreenState.LISTA);
-        // O hook useTurmas já recarrega ao focar,
-        // mas podemos forçar se quisermos: refetch();
+        refetchAtivas();
+        refetchApagadas();
     };
     
     const handleCancel = () => {
         setSelectedTurmaId(undefined);
+        // Volta para a lista que estava antes (Ativas ou Apagadas)
+        // Mas por simplicidade, voltamos para a lista ativa ou mantemos a lógica simples
         setCurrentScreen(ScreenState.LISTA);
     };
 
@@ -84,9 +120,16 @@ const TurmaScreen = () => {
         setCurrentScreen(ScreenState.FORM_EDIT);
     };
     
-    // --- Renderização do Gerenciador de Telas ---
+    const toggleListMode = () => {
+        if (currentScreen === ScreenState.LISTA) {
+            setCurrentScreen(ScreenState.LISTA_APAGADAS);
+        } else {
+            setCurrentScreen(ScreenState.LISTA);
+        }
+    };
 
-    // 1. Tela de Detalhes
+    // --- Renderização ---
+
     if (currentScreen === ScreenState.DETALHE && selectedTurmaId) {
         return (
             <TurmaDetalheScreen 
@@ -98,10 +141,8 @@ const TurmaScreen = () => {
         );
     }
 
-    // 2. Tela de Formulário (Criação ou Edição)
     if (currentScreen === ScreenState.FORM_NEW || currentScreen === ScreenState.FORM_EDIT) {
         const idParaForm = currentScreen === ScreenState.FORM_EDIT ? selectedTurmaId : undefined;
-        
         return (
             <TurmaFormScreen
                 turmaId={idParaForm}
@@ -110,8 +151,6 @@ const TurmaScreen = () => {
             />
         );
     }
-    
-    // 3. Tela de Lista (Padrão e Estados de Carregamento/Erro)
     
     if (isLoading) {
         return (
@@ -127,30 +166,46 @@ const TurmaScreen = () => {
             <ScreenContainer style={styles.center}>
                 <Text style={styles.errorText}>{error}</Text>
                 <Button title="Tentar Novamente" onPress={refetch} />
+                <Button title="Voltar para Lista" onPress={() => setCurrentScreen(ScreenState.LISTA)} variant="ghost" style={{marginTop: 10}} />
             </ScreenContainer>
         );
     }
 
-    // Renderização da Lista
     return (
         <ScreenContainer>
             <View style={styles.header}>
-                <Text style={styles.title}>Turmas</Text>
+                <Text style={styles.title}>
+                    {isShowingDeleted ? "Lixeira" : "Turmas"}
+                </Text>
+                {/* Botão para alternar entre listas */}
+                <TouchableOpacity onPress={toggleListMode} style={styles.headerButton}>
+                    <Ionicons 
+                        name={isShowingDeleted ? "list" : "trash-outline"} 
+                        size={24} 
+                        color="#003F72" 
+                    />
+                </TouchableOpacity>
             </View>
+
             <FlatList
-                data={turmas}
+                data={dataToShow}
                 renderItem={({ item }) => <TurmaItem item={item} onPress={handleTurmaPress} />}
                 keyExtractor={item => item.id.toString()}
                 ListEmptyComponent={
                     <View style={styles.centerList}>
-                        <Text>Nenhuma turma encontrada.</Text>
+                        <Ionicons name={isShowingDeleted ? "trash-bin-outline" : "school-outline"} size={50} color="#ccc" />
+                        <Text style={styles.emptyText}>
+                            {isShowingDeleted ? "Nenhuma turma apagada." : "Nenhuma turma ativa."}
+                        </Text>
                     </View>
                 }
-                contentContainerStyle={turmas.length === 0 ? styles.center : {}}
-                ListFooterComponent={<View style={{ height: 80 }} />} // Espaço para o FAB
+                contentContainerStyle={dataToShow.length === 0 ? styles.center : { paddingBottom: 80 }}
             />
-            {/* Botão flutuante para adicionar nova turma */}
-            <Fab onPress={() => setCurrentScreen(ScreenState.FORM_NEW)} />
+            
+            {/* Só mostra o FAB na lista de ativas */}
+            {!isShowingDeleted && (
+                <Fab onPress={() => setCurrentScreen(ScreenState.FORM_NEW)} />
+            )}
         </ScreenContainer>
     );
 }
@@ -161,7 +216,7 @@ const styles = StyleSheet.create({
         justifyContent: 'center',
         alignItems: 'center',
     },
-    centerList: { // Estilo para centralizar o "Nenhum item"
+    centerList: {
         flexGrow: 1,
         justifyContent: 'center',
         alignItems: 'center',
@@ -170,40 +225,108 @@ const styles = StyleSheet.create({
         paddingHorizontal: 16,
         paddingTop: 20,
         paddingBottom: 10,
+        flexDirection: 'row', // Para alinhar título e botão
+        justifyContent: 'space-between',
+        alignItems: 'center'
     },
     title: {
         fontSize: 28,
         fontWeight: 'bold',
         color: '#333',
     },
+    headerButton: {
+        padding: 8,
+        borderRadius: 8,
+        backgroundColor: '#f0f0f0'
+    },
     errorText: {
         color: 'red',
         fontSize: 16,
         marginBottom: 10,
     },
+    emptyText: {
+        color: '#888',
+        marginTop: 10,
+        fontSize: 16,
+    },
     itemContainer: {
-        // O Card já tem sombra e padding
         marginVertical: 8,
         marginHorizontal: 16,
+        padding: 0,
+    },
+    itemHeader: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        padding: 16,
+    },
+    iconContainer: {
+        width: 46,
+        height: 46,
+        borderRadius: 23,
+        backgroundColor: '#E6F4FE',
+        justifyContent: 'center',
+        alignItems: 'center',
+        marginRight: 12,
+    },
+    iconContainerDeleted: {
+        backgroundColor: '#fee2e2', // Fundo vermelho claro para apagados
+    },
+    headerTextContainer: {
+        flex: 1,
     },
     itemName: {
-        fontSize: 18,
+        fontSize: 17,
         fontWeight: 'bold',
-        color: '#444',
+        color: '#333',
+        marginBottom: 2,
     },
-    itemDetails: {
-        marginTop: 8,
+    itemSubtitle: {
+        fontSize: 14,
+        color: '#666',
     },
-    itemText: {
+    statusBadge: {
+        paddingHorizontal: 8,
+        paddingVertical: 4,
+        borderRadius: 12,
+    },
+    statusText: {
+        fontSize: 10,
+        fontWeight: 'bold',
+    },
+    divider: {
+        height: 1,
+        backgroundColor: '#f0f0f0',
+        marginHorizontal: 16,
+    },
+    itemFooter: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        paddingHorizontal: 16,
+        paddingVertical: 12,
+        backgroundColor: '#fafafa',
+        borderBottomLeftRadius: 8,
+        borderBottomRightRadius: 8,
+    },
+    infoRow: {
+        flexDirection: 'row',
+        alignItems: 'center',
+    },
+    infoText: {
         fontSize: 14,
         color: '#555',
+        marginLeft: 6,
+        fontWeight: '500',
+    },
+    arrowContainer: {
+        flexDirection: 'row',
+        alignItems: 'center',
     },
     viewMoreText: {
-        marginTop: 10,
-        fontSize: 12,
-        fontWeight: 'bold',
+        fontSize: 13,
+        fontWeight: '600',
         color: '#007bff',
-        textAlign: 'right',
+        marginRight: 4,
     }
 });
 

@@ -1,9 +1,15 @@
 import SplashScreen from "@/src/screens/splash";
 import { Redirect } from "expo-router";
 import { useEffect, useState } from "react";
+import { StatusBar } from "react-native";
 
 export default function Index() {
     const [IsLoading, setIsLoading] = useState(true);
+
+
+  useEffect(() => {
+  StatusBar.setHidden(true);
+  },[]);
 
   useEffect(() => {
     const timer = setTimeout(() => {

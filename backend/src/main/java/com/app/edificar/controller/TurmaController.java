@@ -24,6 +24,7 @@ import com.app.edificar.DTO.response.LecionaResponse;
 import com.app.edificar.DTO.response.TurmaResponse;
 import com.app.edificar.DTO.response.UsuarioDadosResponse;
 import com.app.edificar.service.TurmaService;
+
  
 @CrossOrigin("*")
 @RestController
@@ -57,6 +58,11 @@ public class TurmaController {
     @GetMapping
     public ResponseEntity<List<TurmaResponse>> listarTurmas(){
         return ResponseEntity.ok(this.turmaService.retornarTurmas());
+    }
+
+    @GetMapping("/apagadas")
+    public ResponseEntity<List<TurmaResponse>> listarTurmasApagadas() {
+        return ResponseEntity.ok(this.turmaService.retornarTurmasApagadas());
     }
 
     @GetMapping("/ativas")
@@ -97,6 +103,9 @@ public class TurmaController {
     public ResponseEntity<List<AulaResponse>> listarAulasDeUmaTurma(@PathVariable("idTurma")Long idTurma){
         return ResponseEntity.ok(this.turmaService.aulasEmUmaTurma(idTurma));
     }
+
+    
+    
     /**
      * Remove a associação de um professor de uma turma.
      */

@@ -1,10 +1,10 @@
-import { useState, useCallback, useEffect } from 'react';
-import { useFocusEffect } from 'expo-router';
-import { TurmaResponse } from '@/src/core/types/turma';
-import TurmaService from '@/src/shared/services/turma';
-import { UsuarioDadosResponse } from '@/src/core/types/usuario';
 import { AlunoDadosResponse } from '@/src/core/types/alunos';
 import { AulaResponse } from '@/src/core/types/aulas';
+import { TurmaResponse } from '@/src/core/types/turma';
+import { UsuarioDadosResponse } from '@/src/core/types/usuario';
+import TurmaService from '@/src/shared/services/turma';
+import { useFocusEffect } from 'expo-router';
+import { useCallback, useEffect, useState } from 'react';
 
 /**
  * Hook para buscar a lista de turmas ATIVAS.
@@ -54,6 +54,7 @@ export const useTurmaDetalhes = (id: number | null) => {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  
   const fetchDetalhes = useCallback(async (turmaId: number) => {
     setIsLoading(true);
     setError(null);
@@ -95,4 +96,36 @@ export const useTurmaDetalhes = (id: number | null) => {
   }, [id, fetchDetalhes]);
 
   return { turma, professores, alunos, aulas, isLoading, error, refetch: () => id ? fetchDetalhes(id) : Promise.resolve() };
+};
+
+export const useTurmasApagadas = () => {
+  const [turmas, setTurmas] = useState<TurmaResponse[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  const fetchTurmas = useCallback(async () => {
+    setIsLoading(true);
+    setError(null);
+    try {
+      const data = await TurmaService.returnDeletedTurmas();
+      if (data) {
+        setTurmas(data);
+      } else {
+        setError('Não foi possível carregar as turmas apagadas.');
+      }
+    } catch (err) {
+      console.error('Erro no hook useTurmasApagadas:', err);
+      setError('Ocorreu um erro ao buscar os dados.');
+    } finally {
+      setIsLoading(false);
+    }
+  }, []);
+
+  useFocusEffect(
+    useCallback(() => {
+      fetchTurmas();
+    }, [fetchTurmas])
+  );
+
+  return { turmas, isLoading, error, refetch: fetchTurmas };
 };

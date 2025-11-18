@@ -14,7 +14,15 @@ const TurmaService = {
         }catch(error){
             console.error('Erro ao consultar dados da Turma: ', error);
         }
-    }, async returnTurmaById(id:number){
+    }, async returnDeletedTurmas(){
+        try{
+            const response = await api.get<TurmaResponse[]>("/turmas/apagadas");
+            return response.data;
+        }catch(error){
+            console.error('Erro ao retornar turmas apagadas: ', error);
+        }
+    }
+    , async returnTurmaById(id:number){
         try{
             const response = await api.get<TurmaResponse>(`/turmas/${id}`);
             return response.data;

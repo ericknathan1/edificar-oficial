@@ -1,4 +1,5 @@
 import { UsuarioResponse } from "@/src/core/types/usuario";
+import { Ionicons } from '@expo/vector-icons';
 import React, { useState } from "react";
 import {
     FlatList,
@@ -8,25 +9,34 @@ import {
     View
 } from "react-native";
 
-// Importando hooks e componentes de UI
 import { Button } from "@/src/shared/components/ui/button";
 import { Card } from "@/src/shared/components/ui/card";
+import { Fab } from "@/src/shared/components/ui/fab";
 import { ScreenContainer } from "@/src/shared/components/ui/screenContainer";
 import { Spinner } from "@/src/shared/components/ui/spinner";
+import { StatusUsuario } from "@/src/shared/enums/statusUsuario"; // Importar Enum StatusUsuario
 import { useUsuarios } from "@/src/shared/hooks/useUsuarios";
+import { formatTitleCase } from "@/src/shared/resources/formatters/fortmatTitleCase";
 
-// Importando as telas filhas
 import UsuarioFormScreen from "./usuarioForm";
 import UsuarioDetalheScreen from "./usuariosDetails";
 
-// Enum para Gerenciamento de Estado da Tela
 enum ScreenState {
     LISTA,
     DETALHE,
+    FORM_NEW,
     FORM_EDIT
 }
 
-// Componente de Item da Lista
+// Adaptado para StatusUsuario
+const getStatusColor = (status: StatusUsuario) => {
+    switch (status) {
+        case StatusUsuario.ATIVO: return '#28a745';
+        case StatusUsuario.INATIVO: return '#6c757d';
+        default: return '#dc3545';
+    }
+};
+
 interface UsuarioItemProps {
     item: UsuarioResponse;
     onPress: (id: number) => void;
@@ -34,29 +44,47 @@ interface UsuarioItemProps {
 
 const UsuarioItem = ({ item, onPress }: UsuarioItemProps) => (
     <Card style={styles.itemContainer}>
-      <TouchableOpacity onPress={() => onPress(item.id)}>
-        <Text style={styles.itemName}>{item.nome}</Text>
-        <View style={styles.itemDetails}>
-            <Text style={styles.itemText}>Email: {item.email}</Text>
-            <Text style={styles.itemText}>Roles: {item.roles.join(', ')}</Text>
+      <TouchableOpacity onPress={() => onPress(item.id)} activeOpacity={0.7}>
+        <View style={styles.itemHeader}>
+            <View style={styles.iconContainer}>
+                <Ionicons name="shield-checkmark" size={24} color="#003F72" />
+            </View>
+            
+            <View style={styles.headerTextContainer}>
+                <Text style={styles.itemName}>{item.nome}</Text>
+                <Text style={styles.itemSubtitle}>{item.roles.join(', ')}</Text>
+            </View>
+
+            <View style={[styles.statusBadge, { backgroundColor: getStatusColor(item.status) + '20' }]}>
+                <Text style={[styles.statusText, { color: getStatusColor(item.status) }]}>
+                    {formatTitleCase(item.status)}
+                </Text>
+            </View>
         </View>
-        <Text style={styles.viewMoreText}>VER DETALHES</Text>
+
+        <View style={styles.divider} />
+
+        <View style={styles.itemFooter}>
+            <View style={styles.infoRow}>
+                <Ionicons name="mail-outline" size={16} color="#666" />
+                <Text style={styles.infoText} numberOfLines={1}>{item.email}</Text>
+            </View>
+            
+            <View style={styles.arrowContainer}>
+                <Text style={styles.viewMoreText}>Detalhes</Text>
+                <Ionicons name="chevron-forward" size={16} color="#007bff" />
+            </View>
+        </View>
       </TouchableOpacity>
     </Card>
 );
 
-// Componente da Tela Principal (Gerenciador de Telas)
 const UsuarioScreen = () => {
-    // ESTADOS PARA CONTROLE DE NAVEGAÇÃO
     const [currentScreen, setCurrentScreen] = useState(ScreenState.LISTA);
     const [selectedUsuarioId, setSelectedUsuarioId] = useState<number | undefined>(undefined);
     
-    // ** REFATORAÇÃO PRINCIPAL **
-    // Substitui useState, useEffect e carregarUsuarios pelo hook
     const { usuarios, isLoading, error, refetch } = useUsuarios();
 
-    // --- Funções de Navegação e Handlers ---
-    
     const handleUsuarioPress = (id: number) => {
         setSelectedUsuarioId(id);
         setCurrentScreen(ScreenState.DETALHE);
@@ -65,7 +93,6 @@ const UsuarioScreen = () => {
     const handleOperationSuccess = () => {
         setSelectedUsuarioId(undefined);
         setCurrentScreen(ScreenState.LISTA);
-        // O hook recarrega no focus, mas podemos forçar
         refetch();
     };
     
@@ -79,8 +106,6 @@ const UsuarioScreen = () => {
         setCurrentScreen(ScreenState.FORM_EDIT);
     };
     
-    // --- Renderização do Gerenciador de Telas ---
-
     if (currentScreen === ScreenState.DETALHE && selectedUsuarioId) {
         return (
             <UsuarioDetalheScreen 
@@ -92,10 +117,12 @@ const UsuarioScreen = () => {
         );
     }
 
-    if (currentScreen === ScreenState.FORM_EDIT && selectedUsuarioId) {
+    if (currentScreen === ScreenState.FORM_NEW || currentScreen === ScreenState.FORM_EDIT) {
+        const idParaForm = currentScreen === ScreenState.FORM_EDIT ? selectedUsuarioId : undefined;
+
         return (
             <UsuarioFormScreen
-                usuarioId={selectedUsuarioId}
+                usuarioId={idParaForm}
                 onSuccess={handleOperationSuccess}
                 onCancel={handleCancel}
             />
@@ -120,7 +147,6 @@ const UsuarioScreen = () => {
         );
     }
 
-    // Renderização da Lista
     return (
         <ScreenContainer>
             <View style={styles.header}>
@@ -132,15 +158,18 @@ const UsuarioScreen = () => {
                 keyExtractor={item => item.id.toString()}
                 ListEmptyComponent={
                     <View style={styles.centerList}>
-                        <Text>Nenhum usuário ativo encontrado.</Text>
+                        <Ionicons name="people-outline" size={50} color="#ccc" />
+                        <Text style={styles.emptyText}>Nenhum usuário ativo encontrado.</Text>
                     </View>
                 }
-                contentContainerStyle={usuarios.length === 0 ? styles.center : {}}
+                contentContainerStyle={usuarios.length === 0 ? styles.center : { paddingBottom: 80 }}
             />
+            <Fab onPress={() => setCurrentScreen(ScreenState.FORM_NEW)} />
         </ScreenContainer>
     );
 }
 
+// Reutilizando os mesmos estilos padronizados
 const styles = StyleSheet.create({
     center: {
         flex: 1,
@@ -167,28 +196,87 @@ const styles = StyleSheet.create({
         fontSize: 16,
         marginBottom: 10,
     },
+    emptyText: {
+        color: '#888',
+        marginTop: 10,
+        fontSize: 16,
+    },
     itemContainer: {
         marginVertical: 8,
         marginHorizontal: 16,
+        padding: 0,
+    },
+    itemHeader: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        padding: 16,
+    },
+    iconContainer: {
+        width: 46,
+        height: 46,
+        borderRadius: 23,
+        backgroundColor: '#E6F4FE',
+        justifyContent: 'center',
+        alignItems: 'center',
+        marginRight: 12,
+    },
+    headerTextContainer: {
+        flex: 1,
     },
     itemName: {
-        fontSize: 18,
+        fontSize: 17,
         fontWeight: 'bold',
-        color: '#444',
+        color: '#333',
+        marginBottom: 2,
     },
-    itemDetails: {
-        marginTop: 8,
+    itemSubtitle: {
+        fontSize: 14,
+        color: '#666',
     },
-    itemText: {
+    statusBadge: {
+        paddingHorizontal: 8,
+        paddingVertical: 4,
+        borderRadius: 12,
+    },
+    statusText: {
+        fontSize: 10,
+        fontWeight: 'bold',
+    },
+    divider: {
+        height: 1,
+        backgroundColor: '#f0f0f0',
+        marginHorizontal: 16,
+    },
+    itemFooter: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        paddingHorizontal: 16,
+        paddingVertical: 12,
+        backgroundColor: '#fafafa',
+        borderBottomLeftRadius: 8,
+        borderBottomRightRadius: 8,
+    },
+    infoRow: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        flex: 1,
+    },
+    infoText: {
         fontSize: 14,
         color: '#555',
+        marginLeft: 6,
+        fontWeight: '500',
+    },
+    arrowContainer: {
+        flexDirection: 'row',
+        alignItems: 'center',
     },
     viewMoreText: {
-        marginTop: 10,
-        fontSize: 12,
-        fontWeight: 'bold',
+        fontSize: 13,
+        fontWeight: '600',
         color: '#007bff',
-        textAlign: 'right',
+        marginRight: 4,
     }
 });
 

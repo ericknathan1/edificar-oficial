@@ -21,6 +21,9 @@ public interface TurmaRepository extends JpaRepository<Turma,Long> {
     List<Turma> turmas();
     @Query("SELECT t FROM Turma t WHERE t.id = :id")
     Turma turmaPorId(@Param("id") Long id);
+    @Query("SELECT t FROM Turma t WHERE t.status = -1")
+    List<Turma> turmasApagadas();
+
     @Modifying
     @Transactional
     @Query("UPDATE Turma t SET t.status = -1 WHERE t.id = :id")
