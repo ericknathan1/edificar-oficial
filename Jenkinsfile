@@ -34,7 +34,7 @@ pipeline {
                         // O comando 'docker build' executa o Multi-Stage Build:
                         // 1. Compila o JAR (pulando os testes para evitar o erro de JVM que ocorreu).
                         // 2. Cria a imagem final leve com o JAR.
-                        sh "docker build -t ${IMAGE_TAG} ."
+                        bat "docker build -t ${IMAGE_TAG} ."
                     }
                     echo "Imagem Docker construída: ${IMAGE_TAG}"
                 }
@@ -49,15 +49,15 @@ pipeline {
                     // 1. Parar e remover o container existente
                     // '|| true' garante que o pipeline não falhe se o container não existir.
                     echo "Parando e removendo container antigo: ${APP_NAME}"
-                    sh "docker stop ${APP_NAME} || true"
-                    sh "docker rm ${APP_NAME} || true"
+                    bat "docker stop ${APP_NAME} || true"
+                    bat "docker rm ${APP_NAME} || true"
 
                     // 2. Iniciar o novo container a partir da imagem construída
                     echo "Iniciando novo container: ${APP_NAME}"
                     // -d: detached mode (em segundo plano)
                     // --restart=always: Garante que o container suba em caso de falha ou reinício do host.
                     // -p 8080:8080: Mapeia a porta interna 8080 (Java) para a porta externa 8080 do host.
-                    sh "docker run -d --restart=always --name ${APP_NAME} -p 8080:8080 ${IMAGE_TAG}"
+                    bat "docker run -d --restart=always --name ${APP_NAME} -p 8080:8080 ${IMAGE_TAG}"
                     
                     echo "Container ${APP_NAME} iniciado com sucesso."
                 }
@@ -73,7 +73,7 @@ pipeline {
             echo "Serviço rodando como container: ${APP_NAME}"
             echo "Imagem utilizada: ${IMAGE_TAG}"
             // Comando para checar o status no servidor, se necessário
-            sh "docker ps -f name=${APP_NAME}"
+            bat "docker ps -f name=${APP_NAME}"
         }
         failure {
             echo '=================================================='
