@@ -2,7 +2,7 @@ pipeline {
     agent any
     stages {
         stage('Verificar Repositório') {
-            steps {o
+            steps {
                 checkout([$class: 'GitSCM', branches: [[name: '*/main']], useRemoteConfigs: [[url: 'https://github.com/ericknathan1/edificar-oficial.git']]])
             }
         }
