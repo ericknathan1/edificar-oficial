@@ -1,7 +1,10 @@
 package com.app.edificar.service;
 
+import java.time.LocalDate;
 import java.time.LocalTime;
+import java.util.ArrayList;
 import java.util.List;
+import java.util.stream.Collectors;
 
 import org.modelmapper.ModelMapper;
 import org.springframework.stereotype.Service;
@@ -9,6 +12,7 @@ import org.springframework.stereotype.Service;
 import com.app.edificar.DTO.request.AulaRequest;
 import com.app.edificar.DTO.request.AulaUpdateRequest;
 import com.app.edificar.DTO.response.AulaResponse;
+import com.app.edificar.entity.Aluno;
 import com.app.edificar.entity.Aula;
 import com.app.edificar.entity.Frequencia;
 import com.app.edificar.entity.Turma;
@@ -19,9 +23,12 @@ import com.app.edificar.enums.StatusAula;
 import com.app.edificar.repository.AlunoRepository;
 import com.app.edificar.repository.AulaRepository;
 import com.app.edificar.repository.FrequenciaRepository;
+import com.app.edificar.repository.InscricaoRepository;
 import com.app.edificar.repository.LecionaRepository;
 import com.app.edificar.repository.TurmaRepository;
 import com.app.edificar.repository.UsuarioRepository;
+
+import jakarta.transaction.Transactional;
 
 @Service
 public class AulaService {
@@ -32,9 +39,13 @@ public class AulaService {
     private AlunoRepository alunoRepository;
     private ModelMapper modelMapper;
     private FrequenciaRepository frequenciaRepository;
+    private InscricaoRepository inscricaoRepository;
 
 
-    public AulaService(AulaRepository aulaRepository, UsuarioRepository usuarioRepository, LecionaRepository lecionaRepository, TurmaRepository turmaRepository, AlunoRepository alunoRepository, ModelMapper modelMapper, FrequenciaRepository frequenciaRepository) {
+    public AulaService(AulaRepository aulaRepository, UsuarioRepository usuarioRepository,
+            LecionaRepository lecionaRepository, TurmaRepository turmaRepository, AlunoRepository alunoRepository,
+            ModelMapper modelMapper, FrequenciaRepository frequenciaRepository,
+            InscricaoRepository inscricaoRepository) {
         this.aulaRepository = aulaRepository;
         this.usuarioRepository = usuarioRepository;
         this.lecionaRepository = lecionaRepository;
@@ -42,6 +53,7 @@ public class AulaService {
         this.alunoRepository = alunoRepository;
         this.modelMapper = modelMapper;
         this.frequenciaRepository = frequenciaRepository;
+        this.inscricaoRepository = inscricaoRepository;
     }
 
     public AulaResponse salvarAula(AulaRequest request){
@@ -156,7 +168,7 @@ public class AulaService {
 
     
     //Lógicas de fluxos de aula
-
+    @Transactional
     public AulaResponse iniciarAula(Long professorId, Long aulaId){
         Usuario professor = this.usuarioRepository.usuarioPorId(professorId);
         Aula aulaBuscada = this.aulaRepository.aulaPorId(aulaId);
@@ -167,9 +179,11 @@ public class AulaService {
         if (!professorNaTurma){
             throw new IllegalArgumentException("O professor("+professor.getNome()+") selecionado não dá aula para a turma ("+aulaBuscada.getTurma().getNome()+")");
         }
-//        if (aulaBuscada.getData() != LocalDate.now()){
-//            throw new IllegalArgumentException("A aula ("+aulaBuscada.getId()+") não pode ser iniciada pois a data de hoje é diferente da data da aula.");
-//        }
+
+       if (aulaBuscada.getData() != LocalDate.now()){
+           throw new IllegalArgumentException("A aula ("+aulaBuscada.getId()+") não pode ser iniciada pois a data de hoje é diferente da data da aula.");
+       }
+       
         if (aulaBuscada.getStatus() != StatusAula.AGENDADA){
             throw new IllegalArgumentException("A aula ("+aulaBuscada.getId()+") não pode ser iniciada pois seu status é: "+aulaBuscada.getStatus());
         }
@@ -179,44 +193,87 @@ public class AulaService {
         Aula aulaIniciada = this.aulaRepository.save(aulaBuscada);
         return modelMapper.map(aulaIniciada,AulaResponse.class);
     }
-
+    
+    @Transactional
     public AulaResponse finalizarAula(Long professorId, Long aulaId){
         Usuario professor = this.usuarioRepository.usuarioPorId(professorId);
         Aula aulaBuscada = this.aulaRepository.aulaPorId(aulaId);
 
-        // 1. Validações de Usuário
-        if (professor.getRoles().stream().noneMatch(r -> r.getName().equals(RoleName.ROLE_PROFESSOR))){
-            throw new IllegalArgumentException("O usuário selecionado não é um professor: "+professorId);
-        }
-        if (aulaBuscada.getUsuario().getId() != professor.getId()){
-            throw new IllegalArgumentException("O usuário selecionado não está lecionando esta aula.");
-        }
-
-        // 2. Validação de Status (DEVE ESTAR EM ANDAMENTO PARA SER FINALIZADA)
-        // Corrigindo a mensagem de erro para refletir a ação correta.
-        if (aulaBuscada.getStatus() != StatusAula.EM_ANDAMENTO){
-            throw new IllegalArgumentException("A aula ("+aulaBuscada.getId()+") não pode ser finalizada pois seu status é: "+aulaBuscada.getStatus());
+        // 1. Validações de Permissão
+        validarProfessorDaTurma(professor, aulaBuscada);
+        
+        if (aulaBuscada.getUsuario() != null && !aulaBuscada.getUsuario().getId().equals(professor.getId())) {
+             throw new IllegalArgumentException("Apenas o professor que iniciou a aula pode finalizá-la.");
         }
 
-        // 3. Validação de Pré-Requisitos (Pendências)
+        // 2. Validação de Status
+        if (aulaBuscada.getStatus() != StatusAula.EM_ANDAMENTO) {
+            throw new IllegalArgumentException("A aula (" + aulaId + 
+                ") não pode ser finalizada pois não está EM_ANDAMENTO.");
+        }
+
+        // 3. Tratamento Inteligente de Pendências (Melhoria de UX)
+        // Ao invés de bloquear, vamos assumir que quem ficou como PENDENTE estava AUSENTE.
         List<Frequencia> frequencias = this.frequenciaRepository.frequenciasPorAulaId(aulaId);
-        boolean haPendencias = frequencias.stream()
-                .anyMatch(frequencia -> frequencia.getStatus() == FrequenciaStatus.PENDENTE);
+        
+        List<Frequencia> pendentes = frequencias.stream()
+                .filter(f -> f.getStatus() == FrequenciaStatus.PENDENTE)
+                .collect(Collectors.toList());
 
-        if (haPendencias) {
-            // Se houver pendências, o método para AQUI.
-            throw new IllegalArgumentException("Ainda há presenças pendentes! A aula não pode ser finalizada.");
+        if (!pendentes.isEmpty()) {
+            // OPÇÃO A: Auto-completar com AUSENTE (Recomendado para facilitar)
+            pendentes.forEach(f -> f.setStatus(FrequenciaStatus.AUSENTE));
+            frequenciaRepository.saveAll(pendentes);
+            
+            // OPÇÃO B: Manter o bloqueio (Se a regra de negócio for rigorosa)
+            // throw new IllegalArgumentException("Existem alunos com presença PENDENTE. Regularize antes de finalizar.");
         }
 
-        // 4. Execução e Persistência (Só chega aqui se todas as validações passarem)
+        // 4. Finalização
         aulaBuscada.setHoraFim(LocalTime.now());
         aulaBuscada.setStatus(StatusAula.FINALIZADA);
+        
         Aula aulaFinalizada = this.aulaRepository.save(aulaBuscada);
-
         return modelMapper.map(aulaFinalizada, AulaResponse.class);
     }
 
+    private void validarProfessorDaTurma(Usuario professor, Aula aula) {
+        if (professor == null) throw new IllegalArgumentException("Professor não encontrado.");
+        if (aula == null) throw new IllegalArgumentException("Aula não encontrada.");
 
+        boolean isProfessor = professor.getRoles().stream()
+                .anyMatch(r -> r.getName().equals(RoleName.ROLE_PROFESSOR));
+        
+        if (!isProfessor) {
+            throw new IllegalArgumentException("O usuário selecionado não é um professor.");
+        }
+
+        Long professorNaTurma = lecionaRepository.turmaProfessorExiste(aula.getTurma().getId(), professor.getId());
+        if (professorNaTurma == 0) { // Assumindo que retorna Count > 0
+            throw new IllegalArgumentException("O professor selecionado não está vinculado a esta turma.");
+        }
+    }
+
+    private void gerarListaDePresencaSeNaoExistir(Aula aula) {
+        List<Frequencia> frequenciasExistentes = frequenciaRepository.frequenciasPorAulaId(aula.getId());
+        
+        if (frequenciasExistentes.isEmpty()) {
+            // Busca todos os alunos inscritos na turma
+            List<Aluno> alunosInscritos = inscricaoRepository.buscarAlunosPorTurma(aula.getTurma().getId());
+            
+            if (!alunosInscritos.isEmpty()) {
+                List<Frequencia> novasFrequencias = new ArrayList<>();
+                for (Aluno aluno : alunosInscritos) {
+                    Frequencia f = new Frequencia();
+                    f.setAula(aula);
+                    f.setAluno(aluno);
+                    f.setStatus(FrequenciaStatus.PENDENTE); // Status inicial
+                    novasFrequencias.add(f);
+                }
+                frequenciaRepository.saveAll(novasFrequencias);
+            }
+        }
+    }
 
     
 

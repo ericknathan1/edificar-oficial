@@ -9,6 +9,7 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
 import com.app.edificar.entity.Aula;
+import com.app.edificar.enums.StatusAula;
 
 import jakarta.transaction.Transactional;
 
@@ -24,4 +25,6 @@ public interface AulaRepository extends JpaRepository<Aula,Long> {
     @Transactional
     @Query("UPDATE Aula a SET a.status = -1 WHERE a.id = :id")
     void apagarAula(@Param("id") Long aulaId);
+
+    List<Aula> findByStatusAndDataBefore(StatusAula status, LocalDate data);
 }

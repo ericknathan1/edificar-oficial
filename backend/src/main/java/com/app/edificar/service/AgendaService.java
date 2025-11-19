@@ -1,5 +1,16 @@
 package com.app.edificar.service;
 
+import java.time.DayOfWeek;
+import java.time.LocalDate;
+import java.time.Year;
+import java.time.temporal.TemporalAdjusters;
+import java.util.ArrayList;
+import java.util.List;
+
+import org.springframework.scheduling.annotation.Async;
+import org.springframework.scheduling.annotation.Scheduled;
+import org.springframework.stereotype.Service;
+
 import com.app.edificar.entity.Aluno;
 import com.app.edificar.entity.Aula;
 import com.app.edificar.entity.Frequencia;
@@ -10,15 +21,8 @@ import com.app.edificar.enums.StatusAula;
 import com.app.edificar.repository.AlunoRepository;
 import com.app.edificar.repository.AulaRepository;
 import com.app.edificar.repository.FrequenciaRepository;
-import org.springframework.scheduling.annotation.Async;
-import org.springframework.stereotype.Service;
 
-import java.time.DayOfWeek;
-import java.time.LocalDate;
-import java.time.Year;
-import java.time.temporal.TemporalAdjusters;
-import java.util.ArrayList;
-import java.util.List;
+import jakarta.transaction.Transactional;
 
 /*
 * Classe de Serviço do SpringBoot para criar aulas automaticamente.
@@ -123,5 +127,27 @@ public class AgendaService {
 
         // Salva todas as aulas geradas em uma única operação de banco de dados
         aulaRepository.saveAll(aulasParaSalvar);
+    }
+
+    @Scheduled(cron = "0 0 0 * * *") // Cron: Seg Min Hora Dia Mês DiaSemana
+    @Transactional // Garante que todas as alterações sejam salvas juntas
+    public void cancelarAulasNaoRealizadas() {
+        LocalDate hoje = LocalDate.now();
+        
+        // Busca aulas que ainda estão 'AGENDADA' mas a data é anterior a hoje
+        List<Aula> aulasAtrasadas = aulaRepository.findByStatusAndDataBefore(StatusAula.AGENDADA, hoje);
+
+        if (!aulasAtrasadas.isEmpty()) {
+            System.out.println("Rotina de Cancelamento: Encontradas " + aulasAtrasadas.size() + " aulas expiradas.");
+            
+            for (Aula aula : aulasAtrasadas) {
+                aula.setStatus(StatusAula.CANCELADA);
+                // Opcional: Adicionar um log ou observação se desejar
+                // aula.setTopico("Cancelada automaticamente pelo sistema por falta de execução.");
+            }
+            
+            aulaRepository.saveAll(aulasAtrasadas);
+            System.out.println("Rotina de Cancelamento: Aulas atualizadas com sucesso.");
+        }
     }
 }
