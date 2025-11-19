@@ -56,8 +56,7 @@ pipeline {
                     echo "Iniciando novo container: ${APP_NAME}"
                     // -d: detached mode (em segundo plano)
                     // --restart=always: Garante que o container suba em caso de falha ou reinício do host.
-                    // -p 8080:8080: Mapeia a porta interna 8080 (Java) para a porta externa 8080 do host.
-                    sh "docker run -d --restart=always --name ${APP_NAME} -p 8080:8080 ${IMAGE_TAG}"
+                    sh "docker run -d --restart=always --name ${APP_NAME} -p 8417:8417 ${IMAGE_TAG}"
                     
                     echo "Container ${APP_NAME} iniciado com sucesso."
                 }
