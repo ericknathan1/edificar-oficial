@@ -41,6 +41,38 @@ export const useUsuarios = () => {
   return { usuarios, isLoading, error, refetch: fetchUsuarios };
 };
 
+export const useUsuariosApagados = () => {
+  const [usuarios, setUsuarios] = useState<UsuarioResponse[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  const fetchUsuarios = useCallback(async () => {
+    setIsLoading(true);
+    setError(null);
+    try {
+      const data = await UserService.returnDeletedUsers();
+      if (data) {
+        setUsuarios(data);
+      } else {
+        setError('Não foi possível carregar os usuários apagados.');
+      }
+    } catch (err) {
+      console.error('Erro no hook useUsuariosApagados:', err);
+      setError('Ocorreu um erro ao buscar os dados.');
+    } finally {
+      setIsLoading(false);
+    }
+  }, []);
+
+  useFocusEffect(
+    useCallback(() => {
+      fetchUsuarios();
+    }, [fetchUsuarios])
+  );
+
+  return { usuarios, isLoading, error, refetch: fetchUsuarios };
+};
+
 /**
  * Hook para buscar um usuário específico pelo ID.
  * Recarrega os dados se o ID mudar.

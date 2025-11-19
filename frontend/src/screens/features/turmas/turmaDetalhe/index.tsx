@@ -186,7 +186,7 @@ const TurmaDetalheScreen = ({ turmaId, onEdit, onBack, onDeleteSuccess }: TurmaD
                 <Card style={styles.detailsContainer}>
                     <View style={styles.headerDetailRow}>
                          <View>
-                            <Text style={styles.detailLabel}>Tema:</Text>
+                            <Text style={styles.detailLabel}>Tema/Faixa-Etária:</Text>
                             <Text style={styles.detailValue}>{turma.faixaEtaria}</Text>
                          </View>
                          <View>

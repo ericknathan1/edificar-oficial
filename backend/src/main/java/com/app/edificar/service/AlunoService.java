@@ -1,20 +1,26 @@
 package com.app.edificar.service;
 
-import com.app.edificar.DTO.request.AlunoRequest;
-import com.app.edificar.DTO.response.*;
-import com.app.edificar.entity.Aluno;
-import com.app.edificar.entity.Aula;
-import com.app.edificar.entity.Frequencia;
-import com.app.edificar.entity.Turma;
-import com.app.edificar.enums.StatusPadrao;
-import com.app.edificar.repository.*;
-import org.modelmapper.ModelMapper;
-import org.springframework.cglib.core.Local;
-import org.springframework.stereotype.Service;
-
 import java.time.LocalDate;
 import java.util.List;
 import java.util.stream.Collectors;
+
+import org.modelmapper.ModelMapper;
+import org.springframework.stereotype.Service;
+
+import com.app.edificar.DTO.request.AlunoRequest;
+import com.app.edificar.DTO.response.AlunoDadosResponse;
+import com.app.edificar.DTO.response.AlunoFrequenciaResponse;
+import com.app.edificar.DTO.response.AlunoResponse;
+import com.app.edificar.DTO.response.TurmaResponse;
+import com.app.edificar.entity.Aluno;
+import com.app.edificar.entity.Frequencia;
+import com.app.edificar.entity.Turma;
+import com.app.edificar.enums.StatusPadrao;
+import com.app.edificar.repository.AlunoRepository;
+import com.app.edificar.repository.AulaRepository;
+import com.app.edificar.repository.FrequenciaRepository;
+import com.app.edificar.repository.InscricaoRepository;
+import com.app.edificar.repository.LecionaRepository;
 
 @Service
 public class AlunoService {
@@ -46,6 +52,22 @@ public class AlunoService {
     //GET '/alunos'
     public List<AlunoResponse> retornarAlunos(){
         List<Aluno> alunos = this.alunoRepository.findAll();
+        List<AlunoResponse> responses = alunos.stream().map(
+                aluno -> modelMapper.map(aluno,AlunoResponse.class)
+        ).collect(Collectors.toList());
+        return responses;
+    }
+
+    public List<AlunoResponse> retornarAlunosAtivos(){
+        List<Aluno> alunos = this.alunoRepository.listarAlunosAtivos();
+        List<AlunoResponse> responses = alunos.stream().map(
+                aluno -> modelMapper.map(aluno,AlunoResponse.class)
+        ).collect(Collectors.toList());
+        return responses;
+    }
+
+    public List<AlunoResponse> retornarAlunosApagados(){
+        List<Aluno> alunos = this.alunoRepository.listarAlunosApagados();
         List<AlunoResponse> responses = alunos.stream().map(
                 aluno -> modelMapper.map(aluno,AlunoResponse.class)
         ).collect(Collectors.toList());

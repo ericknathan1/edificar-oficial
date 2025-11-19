@@ -1,15 +1,16 @@
 package com.app.edificar.repository;
 
-import com.app.edificar.entity.Aluno;
-import com.app.edificar.entity.Turma;
-import jakarta.transaction.Transactional;
+import java.util.List;
+
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
-import java.util.List;
+import com.app.edificar.entity.Aluno;
+
+import jakarta.transaction.Transactional;
 
 @Repository
 public interface AlunoRepository extends JpaRepository<Aluno, Long> {
@@ -18,6 +19,9 @@ public interface AlunoRepository extends JpaRepository<Aluno, Long> {
 
     @Query("SELECT a from Aluno a WHERE a.status >= 0")
     List<Aluno> listarAlunosAtivos();
+
+    @Query("SELECT a from Aluno a WHERE a.status = -1")
+    List<Aluno> listarAlunosApagados();
 
     @Query("SELECT a from Aluno a")
     List<Aluno> listarAlunos();

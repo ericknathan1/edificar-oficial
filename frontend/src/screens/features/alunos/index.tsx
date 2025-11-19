@@ -3,22 +3,22 @@ import { Ionicons } from '@expo/vector-icons';
 import React, { useState } from 'react';
 import { FlatList, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 
-// Importando hooks e componentes de UI
 import { Button } from '@/src/shared/components/ui/button';
 import { Card } from '@/src/shared/components/ui/card';
 import { Fab } from '@/src/shared/components/ui/fab';
 import { ScreenContainer } from '@/src/shared/components/ui/screenContainer';
 import { Spinner } from '@/src/shared/components/ui/spinner';
 import { StatusPadrao } from '@/src/shared/enums/statusPadrao';
-import { useAlunos } from '@/src/shared/hooks/useAlunos';
+// IMPORTANTE: Adicione useAlunosApagados
+import { useAlunos, useAlunosApagados } from '@/src/shared/hooks/useAlunos';
 import { formatTitleCase } from '@/src/shared/resources/formatters/fortmatTitleCase';
 
-// Importando as sub-telas
 import AlunoDetalheScreen from './alunoDetalhe';
 import AlunoFormScreen from './alunoForm';
 
 enum ScreenState {
     LISTA,
+    LISTA_APAGADAS, // <--- Novo Estado
     DETALHE,
     FORM_NEW,
     FORM_EDIT
@@ -41,8 +41,13 @@ const AlunoItem = ({ item, onPress }: AlunoItemProps) => (
     <Card style={styles.itemContainer}>
       <TouchableOpacity onPress={() => onPress(item.id)} activeOpacity={0.7}>
         <View style={styles.itemHeader}>
-            <View style={styles.iconContainer}>
-                <Ionicons name="school" size={24} color="#003F72" />
+             {/* Lógica de ícone: Se apagado, mostra lixeira vermelha */}
+            <View style={[styles.iconContainer, item.status === StatusPadrao.APAGADO && styles.iconContainerDeleted]}>
+                <Ionicons 
+                    name={item.status === StatusPadrao.APAGADO ? "trash" : "school"} 
+                    size={24} 
+                    color={item.status === StatusPadrao.APAGADO ? "#dc3545" : "#003F72"} 
+                />
             </View>
             
             <View style={styles.headerTextContainer}>
@@ -78,7 +83,16 @@ export default function AlunosScreen() {
     const [currentScreen, setCurrentScreen] = useState(ScreenState.LISTA);
     const [selectedAlunoId, setSelectedAlunoId] = useState<number | undefined>(undefined);
     
-    const { alunos, isLoading, error, refetch } = useAlunos();
+    // Hooks para buscar dados (Ativos e Apagados)
+    const { alunos: alunosAtivos, isLoading: loadingAtivos, error: errorAtivos, refetch: refetchAtivos } = useAlunos();
+    const { alunos: alunosApagados, isLoading: loadingApagados, error: errorApagados, refetch: refetchApagados } = useAlunosApagados();
+
+    // Determina qual lista mostrar
+    const isShowingDeleted = currentScreen === ScreenState.LISTA_APAGADAS;
+    const dataToShow = isShowingDeleted ? alunosApagados : alunosAtivos;
+    const isLoading = isShowingDeleted ? loadingApagados : loadingAtivos;
+    const error = isShowingDeleted ? errorApagados : errorAtivos;
+    const refetch = isShowingDeleted ? refetchApagados : refetchAtivos;
 
     const handleAlunoPress = (id: number) => {
         setSelectedAlunoId(id);
@@ -88,7 +102,8 @@ export default function AlunosScreen() {
     const handleOperationSuccess = () => {
         setSelectedAlunoId(undefined);
         setCurrentScreen(ScreenState.LISTA);
-        refetch();
+        refetchAtivos();
+        refetchApagados();
     };
     
     const handleCancel = () => {
@@ -100,6 +115,16 @@ export default function AlunosScreen() {
         setSelectedAlunoId(id);
         setCurrentScreen(ScreenState.FORM_EDIT);
     };
+
+    const toggleListMode = () => {
+        if (currentScreen === ScreenState.LISTA) {
+            setCurrentScreen(ScreenState.LISTA_APAGADAS);
+        } else {
+            setCurrentScreen(ScreenState.LISTA);
+        }
+    };
+
+    // --- Renders ---
 
     if (currentScreen === ScreenState.DETALHE && selectedAlunoId) {
         return (
@@ -137,6 +162,7 @@ export default function AlunosScreen() {
             <ScreenContainer style={styles.center}>
                 <Text style={styles.errorText}>{error}</Text>
                 <Button title="Tentar Novamente" onPress={refetch} />
+                <Button title="Voltar para Lista" onPress={() => setCurrentScreen(ScreenState.LISTA)} variant="ghost" style={{marginTop: 10}} />
             </ScreenContainer>
         );
     }
@@ -144,21 +170,37 @@ export default function AlunosScreen() {
     return (
         <ScreenContainer>
             <View style={styles.header}>
-                <Text style={styles.title}>Alunos</Text>
+                <Text style={styles.title}>
+                    {isShowingDeleted ? "Alunos Apagados" : "Alunos"}
+                </Text>
+                 {/* Botão para alternar entre listas */}
+                 <TouchableOpacity onPress={toggleListMode} style={styles.headerButton}>
+                    <Ionicons 
+                        name={isShowingDeleted ? "list" : "trash-outline"} 
+                        size={24} 
+                        color="#003F72" 
+                    />
+                </TouchableOpacity>
             </View>
+
             <FlatList
-                data={alunos}
+                data={dataToShow}
                 renderItem={({ item }) => <AlunoItem item={item} onPress={handleAlunoPress} />}
                 keyExtractor={item => item.id.toString()}
                 ListEmptyComponent={
                     <View style={styles.centerList}>
-                        <Ionicons name="school-outline" size={50} color="#ccc" />
-                        <Text style={styles.emptyText}>Nenhum aluno encontrado.</Text>
+                         <Ionicons name={isShowingDeleted ? "trash-bin-outline" : "school-outline"} size={50} color="#ccc" />
+                        <Text style={styles.emptyText}>
+                            {isShowingDeleted ? "Nenhum aluno na lixeira." : "Nenhum aluno encontrado."}
+                        </Text>
                     </View>
                 }
-                contentContainerStyle={alunos.length === 0 ? styles.center : { paddingBottom: 80 }}
+                contentContainerStyle={dataToShow.length === 0 ? styles.center : { paddingBottom: 80 }}
             />
-            <Fab onPress={() => setCurrentScreen(ScreenState.FORM_NEW)} />
+            
+            {!isShowingDeleted && (
+                <Fab onPress={() => setCurrentScreen(ScreenState.FORM_NEW)} />
+            )}
         </ScreenContainer>
     );
 }
@@ -178,11 +220,19 @@ const styles = StyleSheet.create({
         paddingHorizontal: 16,
         paddingTop: 20,
         paddingBottom: 10,
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'center'
     },
     title: {
         fontSize: 28,
         fontWeight: 'bold',
         color: '#333',
+    },
+    headerButton: {
+        padding: 8,
+        borderRadius: 8,
+        backgroundColor: '#f0f0f0'
     },
     errorText: {
         color: 'red',
@@ -194,7 +244,6 @@ const styles = StyleSheet.create({
         marginTop: 10,
         fontSize: 16,
     },
-    // Estilos do Item (Card)
     itemContainer: {
         marginVertical: 8,
         marginHorizontal: 16,
@@ -213,6 +262,9 @@ const styles = StyleSheet.create({
         justifyContent: 'center',
         alignItems: 'center',
         marginRight: 12,
+    },
+    iconContainerDeleted: {
+        backgroundColor: '#fee2e2', 
     },
     headerTextContainer: {
         flex: 1,
@@ -254,7 +306,7 @@ const styles = StyleSheet.create({
     infoRow: {
         flexDirection: 'row',
         alignItems: 'center',
-        flex: 1, // Para o texto não empurrar o botão detalhes
+        flex: 1, 
     },
     infoText: {
         fontSize: 14,

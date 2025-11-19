@@ -13,6 +13,24 @@ const AlunoService = {
             throw error; // Lança o erro para o hook tratar
         }
     },
+    async retornarAlunosAtivos(){
+        try{
+            const response = await api.get<AlunoResponse[]>("/alunos/ativos");
+            return response.data;
+        }catch (error){
+            console.error("AlunoService: erro ao buscar alunos ativos", error);
+            throw error;
+        }
+    },
+    async retornarAlunosApagados(){
+        try{
+            const response = await api.get<AlunoResponse[]>("/alunos/apagados");
+            return response.data;
+        }catch (error){
+            console.error("AlunoService: erro ao buscar alunos apagados", error);
+            throw error;
+        }
+    },
     async retornarAlunoPorId(id: number) {
         try {
             const response = await api.get<AlunoResponse>(`/alunos/${id}`);

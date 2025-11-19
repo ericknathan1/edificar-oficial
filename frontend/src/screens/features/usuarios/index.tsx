@@ -14,8 +14,9 @@ import { Card } from "@/src/shared/components/ui/card";
 import { Fab } from "@/src/shared/components/ui/fab";
 import { ScreenContainer } from "@/src/shared/components/ui/screenContainer";
 import { Spinner } from "@/src/shared/components/ui/spinner";
-import { StatusUsuario } from "@/src/shared/enums/statusUsuario"; // Importar Enum StatusUsuario
-import { useUsuarios } from "@/src/shared/hooks/useUsuarios";
+import { StatusUsuario } from "@/src/shared/enums/statusUsuario";
+// IMPORTANTE: Adicione useUsuariosApagados
+import { useUsuarios, useUsuariosApagados } from "@/src/shared/hooks/useUsuarios";
 import { formatTitleCase } from "@/src/shared/resources/formatters/fortmatTitleCase";
 
 import UsuarioFormScreen from "./usuarioForm";
@@ -23,12 +24,12 @@ import UsuarioDetalheScreen from "./usuariosDetails";
 
 enum ScreenState {
     LISTA,
+    LISTA_APAGADAS, // <--- Novo Estado
     DETALHE,
     FORM_NEW,
     FORM_EDIT
 }
 
-// Adaptado para StatusUsuario
 const getStatusColor = (status: StatusUsuario) => {
     switch (status) {
         case StatusUsuario.ATIVO: return '#28a745';
@@ -46,8 +47,13 @@ const UsuarioItem = ({ item, onPress }: UsuarioItemProps) => (
     <Card style={styles.itemContainer}>
       <TouchableOpacity onPress={() => onPress(item.id)} activeOpacity={0.7}>
         <View style={styles.itemHeader}>
-            <View style={styles.iconContainer}>
-                <Ionicons name="shield-checkmark" size={24} color="#003F72" />
+            {/* Ícone condicional */}
+            <View style={[styles.iconContainer, item.status === StatusUsuario.APAGADO && styles.iconContainerDeleted]}>
+                <Ionicons 
+                    name={item.status === StatusUsuario.APAGADO ? "trash" : "shield-checkmark"} 
+                    size={24} 
+                    color={item.status === StatusUsuario.APAGADO ? "#dc3545" : "#003F72"} 
+                />
             </View>
             
             <View style={styles.headerTextContainer}>
@@ -83,7 +89,16 @@ const UsuarioScreen = () => {
     const [currentScreen, setCurrentScreen] = useState(ScreenState.LISTA);
     const [selectedUsuarioId, setSelectedUsuarioId] = useState<number | undefined>(undefined);
     
-    const { usuarios, isLoading, error, refetch } = useUsuarios();
+    // Hooks
+    const { usuarios: usuariosAtivos, isLoading: loadingAtivos, error: errorAtivos, refetch: refetchAtivos } = useUsuarios();
+    const { usuarios: usuariosApagados, isLoading: loadingApagados, error: errorApagados, refetch: refetchApagados } = useUsuariosApagados();
+
+    // Lógica de exibição
+    const isShowingDeleted = currentScreen === ScreenState.LISTA_APAGADAS;
+    const dataToShow = isShowingDeleted ? usuariosApagados : usuariosAtivos;
+    const isLoading = isShowingDeleted ? loadingApagados : loadingAtivos;
+    const error = isShowingDeleted ? errorApagados : errorAtivos;
+    const refetch = isShowingDeleted ? refetchApagados : refetchAtivos;
 
     const handleUsuarioPress = (id: number) => {
         setSelectedUsuarioId(id);
@@ -93,7 +108,8 @@ const UsuarioScreen = () => {
     const handleOperationSuccess = () => {
         setSelectedUsuarioId(undefined);
         setCurrentScreen(ScreenState.LISTA);
-        refetch();
+        refetchAtivos();
+        refetchApagados();
     };
     
     const handleCancel = () => {
@@ -104,6 +120,14 @@ const UsuarioScreen = () => {
     const goToEdit = (id: number) => {
         setSelectedUsuarioId(id);
         setCurrentScreen(ScreenState.FORM_EDIT);
+    };
+
+    const toggleListMode = () => {
+        if (currentScreen === ScreenState.LISTA) {
+            setCurrentScreen(ScreenState.LISTA_APAGADAS);
+        } else {
+            setCurrentScreen(ScreenState.LISTA);
+        }
     };
     
     if (currentScreen === ScreenState.DETALHE && selectedUsuarioId) {
@@ -143,6 +167,7 @@ const UsuarioScreen = () => {
             <ScreenContainer style={styles.center}>
                 <Text style={styles.errorText}>{error}</Text>
                 <Button title="Tentar Novamente" onPress={refetch} />
+                <Button title="Voltar para Lista" onPress={() => setCurrentScreen(ScreenState.LISTA)} variant="ghost" style={{marginTop: 10}} />
             </ScreenContainer>
         );
     }
@@ -150,26 +175,41 @@ const UsuarioScreen = () => {
     return (
         <ScreenContainer>
             <View style={styles.header}>
-                <Text style={styles.title}>Usuários</Text>
+                <Text style={styles.title}>
+                    {isShowingDeleted ? "Lixeira Usuários" : "Usuários"}
+                </Text>
+                {/* Botão de Toggle */}
+                <TouchableOpacity onPress={toggleListMode} style={styles.headerButton}>
+                    <Ionicons 
+                        name={isShowingDeleted ? "list" : "trash-outline"} 
+                        size={24} 
+                        color="#003F72" 
+                    />
+                </TouchableOpacity>
             </View>
+
             <FlatList
-                data={usuarios}
+                data={dataToShow}
                 renderItem={({ item }) => <UsuarioItem item={item} onPress={handleUsuarioPress} />}
                 keyExtractor={item => item.id.toString()}
                 ListEmptyComponent={
                     <View style={styles.centerList}>
-                        <Ionicons name="people-outline" size={50} color="#ccc" />
-                        <Text style={styles.emptyText}>Nenhum usuário ativo encontrado.</Text>
+                        <Ionicons name={isShowingDeleted ? "trash-bin-outline" : "people-outline"} size={50} color="#ccc" />
+                        <Text style={styles.emptyText}>
+                            {isShowingDeleted ? "Nenhum usuário na lixeira." : "Nenhum usuário ativo encontrado."}
+                        </Text>
                     </View>
                 }
-                contentContainerStyle={usuarios.length === 0 ? styles.center : { paddingBottom: 80 }}
+                contentContainerStyle={dataToShow.length === 0 ? styles.center : { paddingBottom: 80 }}
             />
-            <Fab onPress={() => setCurrentScreen(ScreenState.FORM_NEW)} />
+            
+            {!isShowingDeleted && (
+                <Fab onPress={() => setCurrentScreen(ScreenState.FORM_NEW)} />
+            )}
         </ScreenContainer>
     );
 }
 
-// Reutilizando os mesmos estilos padronizados
 const styles = StyleSheet.create({
     center: {
         flex: 1,
@@ -185,11 +225,19 @@ const styles = StyleSheet.create({
         paddingHorizontal: 16,
         paddingTop: 20,
         paddingBottom: 10,
+        flexDirection: 'row', // Alinha botão e titulo
+        justifyContent: 'space-between',
+        alignItems: 'center'
     },
     title: {
         fontSize: 28,
         fontWeight: 'bold',
         color: '#333',
+    },
+    headerButton: {
+        padding: 8,
+        borderRadius: 8,
+        backgroundColor: '#f0f0f0'
     },
     errorText: {
         color: 'red',
@@ -219,6 +267,9 @@ const styles = StyleSheet.create({
         justifyContent: 'center',
         alignItems: 'center',
         marginRight: 12,
+    },
+    iconContainerDeleted: {
+        backgroundColor: '#fee2e2', // Fundo vermelho claro para itens apagados
     },
     headerTextContainer: {
         flex: 1,

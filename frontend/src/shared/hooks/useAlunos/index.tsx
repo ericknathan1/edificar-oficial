@@ -40,6 +40,38 @@ export const useAlunos = () => {
   return { alunos, isLoading, error, refetch: fetchAlunos };
 };
 
+export const useAlunosApagados = () => {
+  const [alunos, setAlunos] = useState<AlunoResponse[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  const fetchAlunos = useCallback(async () => {
+    setIsLoading(true);
+    setError(null);
+    try {
+      const data = await AlunoService.retornarAlunosApagados();
+      if (data) {
+        setAlunos(data);
+      } else {
+        setError('Não foi possível carregar os alunos apagados.');
+      }
+    } catch (err) {
+      console.error('Erro no hook useAlunosApagados:', err);
+      setError('Ocorreu um erro ao buscar os dados.');
+    } finally {
+      setIsLoading(false);
+    }
+  }, []);
+
+  useFocusEffect(
+    useCallback(() => {
+      fetchAlunos();
+    }, [fetchAlunos])
+  );
+
+  return { alunos, isLoading, error, refetch: fetchAlunos };
+};
+
 /**
  * Hook para buscar os detalhes de um aluno específico (dados + turmas + frequências).
  * Recarrega os dados se o ID mudar.
