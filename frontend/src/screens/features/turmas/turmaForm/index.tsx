@@ -1,221 +1,220 @@
 import { Picker } from '@react-native-picker/picker';
-import React, { useEffect, useState } from "react";
-import {
-    Alert,
-    ScrollView,
-    StyleSheet,
-    Text,
-    View
-} from "react-native";
+import React, { useEffect, useState } from 'react';
+import { Alert, ScrollView, StyleSheet, Switch, Text, View } from 'react-native';
 
-// Importações de tipos e serviço
-import { TurmaRequest, TurmaResponse } from "@/src/core/types/turma";
-import { DiaPadrao } from "@/src/shared/enums/diaPadrao";
-import TurmaService from "@/src/shared/services/turma";
+import { Button } from '@/src/shared/components/ui/button';
+import { Header } from '@/src/shared/components/ui/header';
+import { Input } from '@/src/shared/components/ui/input';
+import { ScreenContainer } from '@/src/shared/components/ui/screenContainer';
+import { Spinner } from '@/src/shared/components/ui/spinner';
 
-// Importando hooks e componentes de UI
-import { Button } from "@/src/shared/components/ui/button";
-import { Header } from "@/src/shared/components/ui/header";
-import { Input } from "@/src/shared/components/ui/input";
-import { ScreenContainer } from "@/src/shared/components/ui/screenContainer";
-import { Spinner } from "@/src/shared/components/ui/spinner";
-import { formatTitleCase } from "@/src/shared/resources/formatters/fortmatTitleCase";
+import { TurmaRequest } from '@/src/core/types/turma';
+import { DiaPadrao } from '@/src/shared/enums/diaPadrao';
+import TurmaService from '@/src/shared/services/turma';
 
-interface TurmaFormProps {
-    turmaId?: number;
-    onSuccess: (turma: TurmaResponse) => void;
-    onCancel: () => void;
+interface Props {
+  turmaId?: number;
+  onSuccess: () => void;
+  onCancel: () => void;
 }
 
-const diasPadraoOptions = Object.values(DiaPadrao); 
+const TurmaFormScreen = ({ turmaId, onSuccess, onCancel }: Props) => {
+  const [nome, setNome] = useState('');
+  const [faixaEtaria, setFaixaEtaria] = useState('');
+  const [diaPadrao, setDiaPadrao] = useState<DiaPadrao>(DiaPadrao.DOMINGO);
+  
+  // Novo estado para controlar o agendamento
+  const [gerarAgendamento, setGerarAgendamento] = useState(true);
 
-const TurmaFormScreen = ({ turmaId, onSuccess, onCancel }: TurmaFormProps) => {
-    const [formData, setFormData] = useState<TurmaRequest>({
-        nome: "",
-        faixaEtaria: "",
-        diaPadrao: diasPadraoOptions[0] as DiaPadrao, 
-    });
+  const [loading, setLoading] = useState(false);
+  const [saving, setSaving] = useState(false);
 
-    const [loading, setLoading] = useState(false); // Para carregar dados
-    const [saving, setSaving] = useState(false); // Para salvar/criar
-    const [isEditing, setIsEditing] = useState(false);
+  const isEditing = !!turmaId;
 
-    useEffect(() => {
-        if (turmaId) {
-            setIsEditing(true);
-            const loadTurma = async () => {
-                setLoading(true);
-                try {
-                    const data = await TurmaService.returnTurmaById(turmaId);
-                    if (data) {
-                        setFormData({
-                            nome: data.nome,
-                            faixaEtaria: data.faixaEtaria,
-                            diaPadrao: data.diaPadrao,
-                        });
-                    } else {
-                        Alert.alert("Erro", "Não foi possível carregar os dados da turma para edição.");
-                        onCancel();
-                    }
-                } catch (err) {
-                    Alert.alert("Erro", "Falha na comunicação ao buscar turma.");
-                    onCancel();
-                } finally {
-                    setLoading(false);
-                }
-            };
-            loadTurma();
-        }
-    }, [turmaId, onCancel]);
+  // Lista de dias para o Picker
+  const diasSemana = [
+    { label: 'Domingo', value: DiaPadrao.DOMINGO },
+    { label: 'Segunda-feira', value: DiaPadrao.SEGUNDA },
+    { label: 'Terça-feira', value: DiaPadrao.TERCA },
+    { label: 'Quarta-feira', value: DiaPadrao.QUARTA },
+    { label: 'Quinta-feira', value: DiaPadrao.QUINTA },
+    { label: 'Sexta-feira', value: DiaPadrao.SEXTA },
+    { label: 'Sábado', value: DiaPadrao.SABADO },
+  ];
 
-    const handleChange = (key: keyof TurmaRequest, value: string | DiaPadrao) => {
-        setFormData(prev => ({ ...prev, [key]: value }));
-    };
-    
-    const handleSubmit = async () => {
-        if (!formData.nome || !formData.faixaEtaria) {
-            Alert.alert("Erro", "Nome e Faixa Etária são obrigatórios.");
-            return;
-        }
-
-        setSaving(true);
+  useEffect(() => {
+    if (isEditing && turmaId) {
+      const loadData = async () => {
+        setLoading(true);
         try {
-            let response: TurmaResponse | undefined;
-
-            if (isEditing && turmaId) {
-                response = await TurmaService.updateTurma(turmaId, formData);
-                if (response) {
-                    Alert.alert("Sucesso", "Turma atualizada com sucesso!");
-                }
-            } else {
-                response = await TurmaService.createTurma(formData); 
-                if (response) {
-                    Alert.alert("Sucesso", "Turma criada com sucesso!");
-                }
-            }
-
-            if (response) {
-                onSuccess(response);
-            } else {
-                Alert.alert("Erro", `Não foi possível ${isEditing ? 'atualizar' : 'criar'} a turma.`);
-            }
-
-        } catch (err) {
-            console.error("Erro ao submeter o formulário de turma:", err);
-            Alert.alert("Erro de API", `Falha ao ${isEditing ? 'atualizar' : 'criar'} a turma.`);
+          const turma = await TurmaService.returnTurmaById(turmaId);
+          if (turma) {
+            setNome(turma.nome);
+            setFaixaEtaria(turma.faixaEtaria);
+            setDiaPadrao(turma.diaPadrao);
+          }
+        } catch (error) {
+          Alert.alert('Erro', 'Falha ao carregar dados da turma.');
+          onCancel();
         } finally {
-            setSaving(false);
+          setLoading(false);
         }
-    };
+      };
+      loadData();
+    }
+  }, [turmaId]);
 
-    if (loading) {
-        return (
-            <ScreenContainer style={styles.center}>
-                <Spinner size="large" />
-                <Text>Carregando dados para edição...</Text>
-            </ScreenContainer>
-        );
+  const handleSubmit = async () => {
+    if (!nome || !faixaEtaria) {
+      Alert.alert('Atenção', 'Preencha todos os campos obrigatórios.');
+      return;
     }
 
+    setSaving(true);
+    const request: TurmaRequest = {
+      nome,
+      faixaEtaria,
+      diaPadrao
+    };
+
+    try {
+      if (isEditing && turmaId) {
+        await TurmaService.updateTurma(turmaId, request);
+        Alert.alert('Sucesso', 'Turma atualizada!');
+      } else {
+        // Lógica de decisão: Com ou Sem aulas
+        if (gerarAgendamento) {
+            await TurmaService.createTurma(request); // Endpoint padrão
+            Alert.alert('Sucesso', 'Turma criada e aulas agendadas!');
+        } else {
+            await TurmaService.createTurmaSemAula(request); // Novo Endpoint
+            Alert.alert('Sucesso', 'Turma criada (sem aulas agendadas)!');
+        }
+      }
+      onSuccess();
+    } catch (error) {
+      console.error(error);
+      Alert.alert('Erro', 'Não foi possível salvar a turma.');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  if (loading) {
     return (
-        <ScreenContainer>
-            <Header
-                title={isEditing ? `Editar Turma` : "Nova Turma"}
-                onBack={onCancel}
-            />
-            <ScrollView style={styles.container}>
-                <Input
-                    label="Nome:"
-                    value={formData.nome}
-                    onChangeText={text => handleChange('nome', text)}
-                    placeholder="Ex: Ballet Infantil - Manhã"
-                    autoCapitalize="words"
-                    editable={!saving}
-                />
-
-                <Input
-                    label="Faixa Etária:"
-                    value={formData.faixaEtaria}
-                    onChangeText={text => handleChange('faixaEtaria', text)}
-                    placeholder="Ex: 5-8 anos"
-                    autoCapitalize="none"
-                    editable={!saving}
-                />
-
-                <Text style={styles.label}>Dia Padrão:</Text>
-                <View style={styles.pickerContainer}>
-                    <Picker
-                        selectedValue={formData.diaPadrao}
-                        onValueChange={(itemValue) => handleChange('diaPadrao', itemValue as DiaPadrao)}
-                        style={styles.picker}
-                        enabled={!saving}
-                    >
-                        {diasPadraoOptions.map(dia => (
-                            <Picker.Item key={dia} label={formatTitleCase(dia)} value={dia} />
-                        ))}
-                    </Picker>
-                </View>
-
-                <View style={styles.buttonGroup}>
-                    <Button
-                        title="Cancelar"
-                        onPress={onCancel}
-                        disabled={saving}
-                        variant="ghost"
-                        style={styles.button}
-                    />
-                    <Button
-                        title={isEditing ? "Salvar Alterações" : "Criar Turma"}
-                        onPress={handleSubmit}
-                        loading={saving}
-                        disabled={saving}
-                        style={styles.button}
-                        variant={isEditing ? "warning" : "success"}
-                    />
-                </View>
-            </ScrollView>
-        </ScreenContainer>
+      <ScreenContainer style={styles.center}>
+        <Spinner size="large" />
+      </ScreenContainer>
     );
+  }
+
+  return (
+    <ScreenContainer>
+      <Header title={isEditing ? "Editar Turma" : "Nova Turma"} onBack={onCancel} />
+      <ScrollView style={styles.container}>
+        
+        <Input
+          label="Nome da Turma:"
+          value={nome}
+          onChangeText={setNome}
+          placeholder="Ex: Jovens, Casais..."
+        />
+
+        <Input
+          label="Faixa Etária:"
+          value={faixaEtaria}
+          onChangeText={setFaixaEtaria}
+          placeholder="Ex: 18 a 25 anos"
+        />
+
+        <Text style={styles.label}>Dia Padrão das Aulas:</Text>
+        <View style={styles.pickerContainer}>
+            <Picker
+                selectedValue={diaPadrao}
+                onValueChange={(itemValue) => setDiaPadrao(itemValue)}
+                style={styles.picker}
+            >
+                {diasSemana.map(dia => (
+                    <Picker.Item key={dia.value} label={dia.label} value={dia.value} />
+                ))}
+            </Picker>
+        </View>
+
+        {/* Exibe opção de agendamento apenas se for Nova Turma */}
+        {!isEditing && (
+            <View style={styles.switchContainer}>
+                <View style={styles.switchTextContainer}>
+                    <Text style={styles.switchTitle}>Gerar Agenda Automática</Text>
+                    <Text style={styles.switchSubtitle}>
+                        Criar aulas automaticamente para o ano todo baseadas no dia padrão selecionado.
+                    </Text>
+                </View>
+                <Switch 
+                    value={gerarAgendamento} 
+                    onValueChange={setGerarAgendamento}
+                    trackColor={{ false: "#767577", true: "#81b0ff" }}
+                    thumbColor={gerarAgendamento ? "#003F72" : "#f4f3f4"}
+                />
+            </View>
+        )}
+
+        <View style={styles.buttonGroup}>
+             <Button 
+                title="Cancelar" 
+                onPress={onCancel} 
+                disabled={saving} 
+                variant="ghost" 
+                style={styles.halfButton} 
+             />
+             <Button 
+                title="Salvar" 
+                onPress={handleSubmit} 
+                loading={saving} 
+                disabled={saving} 
+                style={styles.halfButton} 
+             />
+        </View>
+      </ScrollView>
+    </ScreenContainer>
+  );
 };
 
 const styles = StyleSheet.create({
-    container: {
-        flex: 1,
-        padding: 20,
-    },
-    label: {
-        fontSize: 16,
-        color: '#555',
-        marginBottom: 5,
-        fontWeight: '500',
-    },
-    pickerContainer: {
-        backgroundColor: '#ffffff',
-        borderRadius: 8,
-        marginBottom: 15,
-        borderWidth: 1,
-        borderColor: '#D1D1D1',
-        overflow: 'hidden', // Para bordas arredondadas no iOS
-    },
-    picker: {
-        height: 50,
-        width: '100%',
-        backgroundColor: '#F9F9F9'
-    },
-    buttonGroup: {
-        flexDirection: 'row',
-        justifyContent: 'space-between',
-        marginTop: 20,
-    },
-    button: {
-        flex: 1,
-        marginHorizontal: 5,
-    },
-    center: {
-        flex: 1,
-        justifyContent: 'center',
-        alignItems: 'center',
-    },
+  container: { flex: 1, padding: 20 },
+  center: { flex: 1, justifyContent: 'center', alignItems: 'center' },
+  label: { fontSize: 16, color: '#333', marginBottom: 8, fontWeight: '500' },
+  pickerContainer: {
+    borderWidth: 1, borderColor: '#D1D1D1', borderRadius: 8, marginBottom: 20, backgroundColor: '#F9F9F9'
+  },
+  picker: { height: 50 },
+  // Estilos do Switch
+  switchContainer: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      backgroundColor: '#E6F4FE',
+      padding: 15,
+      borderRadius: 10,
+      marginBottom: 20,
+      borderWidth: 1,
+      borderColor: '#cee5f5'
+  },
+  switchTextContainer: {
+      flex: 1,
+      paddingRight: 10
+  },
+  switchTitle: {
+      fontSize: 16,
+      fontWeight: 'bold',
+      color: '#003F72'
+  },
+  switchSubtitle: {
+      fontSize: 12,
+      color: '#555',
+      marginTop: 4
+  },
+  buttonGroup: { flexDirection: 'row', justifyContent: 'space-between', marginTop: 10 },
+  halfButton: { width: '48%' }
 });
 
 export default TurmaFormScreen;

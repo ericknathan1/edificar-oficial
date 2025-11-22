@@ -5,7 +5,6 @@ import React from 'react';
 
 export default function TabLayout() {
   const { isAdmin } = usePermissions();
-  console.log('TabLayout render — isAdmin:', isAdmin, 'typeof:', typeof isAdmin);
 
   return (
     <Tabs screenOptions={{ tabBarActiveTintColor: '#003F72', headerShown: false }}>

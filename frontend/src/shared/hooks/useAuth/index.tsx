@@ -1,10 +1,10 @@
-import React, { createContext, useState, useContext, useEffect, ReactNode, useCallback } from 'react';
-import { UsuarioResponse, UsuarioSecurityRequest, LoginSecurityRequest } from '@/src/core/types/usuario';
+import api from '@/src/core/api';
+import { LoginSecurityRequest, UsuarioResponse, UsuarioSecurityRequest } from '@/src/core/types/usuario';
 import LoginService from '@/src/shared/services/auth/login';
 import RegisterService from '@/src/shared/services/auth/register';
 import StorageService from '@/src/shared/services/auth/storage';
 import UserService from '@/src/shared/services/usuario';
-import api from '@/src/core/api';
+import React, { createContext, ReactNode, useCallback, useContext, useEffect, useState } from 'react';
 
 // Interface para o contexto de autenticação
 interface AuthContextData {
@@ -55,7 +55,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
     loadStorageData();
   }, []);
-
   // Função de Login
   const login = useCallback(async (credentials: LoginSecurityRequest) => {
     try {
