@@ -15,6 +15,7 @@ import { Card } from "@/src/shared/components/ui/card";
 import { Header } from "@/src/shared/components/ui/header";
 import { ScreenContainer } from "@/src/shared/components/ui/screenContainer";
 import { Spinner } from "@/src/shared/components/ui/spinner";
+import { usePermissions } from "@/src/shared/hooks/usePermissions";
 import { useTurmaDetalhes } from "@/src/shared/hooks/useTurmas";
 
 interface TurmaDetalheProps {
@@ -28,6 +29,7 @@ interface TurmaDetalheProps {
 
 const TurmaDetalheScreen = ({ turmaId, onEdit, onBack, onDeleteSuccess, onAulaPress, onAddAula }: TurmaDetalheProps) => {
     const { turma, professores, alunos, aulas, isLoading, error, refetch } = useTurmaDetalhes(turmaId);
+    const { isAdmin } = usePermissions();
     
     // Estados para exclusão
     const [isDeleting, setIsDeleting] = useState(false);
@@ -135,10 +137,13 @@ const TurmaDetalheScreen = ({ turmaId, onEdit, onBack, onDeleteSuccess, onAulaPr
                     </View>
                 </Card>
 
-                <View style={styles.actionButtons}>
-                    <Button title="Editar" onPress={() => onEdit(turma.id)} variant="warning" style={styles.actionButton} />
-                    <Button title="Deletar" onPress={handleDelete} variant="danger" style={styles.actionButton} />
-                </View>
+                {/* AÇÕES DA TURMA: Apenas Admin pode Editar ou Deletar a TURMA */}
+                {isAdmin && (
+                    <View style={styles.actionButtons}>
+                        <Button title="Editar Turma" onPress={() => onEdit(turma.id)} variant="warning" style={styles.actionButton} />
+                        <Button title="Deletar Turma" onPress={handleDelete} variant="danger" style={styles.actionButton} />
+                    </View>
+                )}
 
                 {/* Seção de Aulas */}
                 <Card style={styles.section}>
@@ -182,9 +187,11 @@ const TurmaDetalheScreen = ({ turmaId, onEdit, onBack, onDeleteSuccess, onAulaPr
                 <Card style={styles.section}>
                     <View style={styles.sectionHeader}>
                         <Text style={styles.sectionTitle}>Professores ({professores.length})</Text>
-                        <TouchableOpacity onPress={() => handleOpenAssociar('PROFESSOR')}>
-                            <Ionicons name="person-add" size={24} color="#003F72" />
-                        </TouchableOpacity>
+                        {isAdmin && (
+                            <TouchableOpacity onPress={() => handleOpenAssociar('PROFESSOR')}>
+                                <Ionicons name="person-add" size={24} color="#003F72" />
+                            </TouchableOpacity>
+                        )}
                     </View>
                     {professores.map(prof => (
                          <View key={prof.id} style={styles.simpleListItem}>
@@ -198,9 +205,11 @@ const TurmaDetalheScreen = ({ turmaId, onEdit, onBack, onDeleteSuccess, onAulaPr
                  <Card style={styles.section}>
                     <View style={styles.sectionHeader}>
                         <Text style={styles.sectionTitle}>Alunos ({alunos.length})</Text>
-                        <TouchableOpacity onPress={() => handleOpenAssociar('ALUNO')}>
-                             <Ionicons name="person-add" size={24} color="#003F72" />
-                        </TouchableOpacity>
+                       {isAdmin && (
+                            <TouchableOpacity onPress={() => handleOpenAssociar('ALUNO')}>
+                                 <Ionicons name="person-add" size={24} color="#003F72" />
+                            </TouchableOpacity>
+                        )}
                     </View>
                     {alunos.map(aluno => (
                         <View key={aluno.id} style={styles.simpleListItem}>

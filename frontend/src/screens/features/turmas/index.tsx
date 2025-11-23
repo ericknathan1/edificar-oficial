@@ -1,6 +1,6 @@
 import { Ionicons } from '@expo/vector-icons';
-import React, { useState } from "react";
-import { Alert, FlatList, StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import React, { useEffect, useState } from "react";
+import { Alert, BackHandler, FlatList, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 
 import { TurmaResponse } from "@/src/core/types/turma";
 import { StatusPadrao } from "@/src/shared/enums/statusPadrao";
@@ -71,11 +71,42 @@ const TurmaItem = ({ item, onPress }: { item: TurmaResponse, onPress: (id: numbe
 );
 
 const TurmaScreen = () => {
+
     // Hook de Permissões
     const { isAdmin } = usePermissions(); 
 
     // Estado principal de navegação
     const [currentScreen, setCurrentScreen] = useState(ScreenState.LISTA);
+
+        // --- ADICIONE ESTE BLOCO ---
+    useEffect(() => {
+        const backAction = () => {
+            // Cenario 1: Se estiver em detalhes, form ou aula, VOLTA pra lista
+            if (currentScreen !== ScreenState.LISTA) {
+                setCurrentScreen(ScreenState.LISTA);
+                // Limpa seleções para evitar lixo de estado
+                setSelectedTurmaId(undefined);
+                setSelectedAulaId(undefined);
+                return true; 
+            }
+
+            // Cenario 2: Se JÁ estiver na lista (Raiz da tela)
+            if (currentScreen === ScreenState.LISTA || currentScreen === ScreenState.LISTA_APAGADAS) {
+                // Retornar TRUE aqui impede que o app feche/minimize
+                // Retornar FALSE faria o app fechar (comportamento padrão)
+                return true; 
+            }
+
+            return false;
+        };
+
+        const backHandler = BackHandler.addEventListener(
+            "hardwareBackPress",
+            backAction
+        );
+
+        return () => backHandler.remove();
+    }, [currentScreen]);
     
     // IDs selecionados para contexto
     const [selectedTurmaId, setSelectedTurmaId] = useState<number | undefined>(undefined);

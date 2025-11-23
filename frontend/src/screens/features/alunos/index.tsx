@@ -1,7 +1,7 @@
 import { AlunoResponse } from '@/src/core/types/alunos';
 import { Ionicons } from '@expo/vector-icons';
-import React, { useState } from 'react';
-import { FlatList, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import React, { useEffect, useState } from 'react';
+import { BackHandler, FlatList, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 
 import { Button } from '@/src/shared/components/ui/button';
 import { Card } from '@/src/shared/components/ui/card';
@@ -13,6 +13,7 @@ import { StatusPadrao } from '@/src/shared/enums/statusPadrao';
 import { useAlunos, useAlunosApagados } from '@/src/shared/hooks/useAlunos';
 import { formatTitleCase } from '@/src/shared/resources/formatters/fortmatTitleCase';
 
+import { usePermissions } from '@/src/shared/hooks/usePermissions';
 import AlunoDetalheScreen from './alunoDetalhe';
 import AlunoFormScreen from './alunoForm';
 
@@ -80,8 +81,34 @@ const AlunoItem = ({ item, onPress }: AlunoItemProps) => (
 );
 
 export default function AlunosScreen() {
+    const { isAdmin } = usePermissions();
     const [currentScreen, setCurrentScreen] = useState(ScreenState.LISTA);
     const [selectedAlunoId, setSelectedAlunoId] = useState<number | undefined>(undefined);
+
+    useEffect(() => {
+        const backAction = () => {
+            // Cenario 1: Se estiver em detalhes, form, VOLTA pra lista
+            if (currentScreen !== ScreenState.LISTA && currentScreen !== ScreenState.LISTA_APAGADAS) {
+                setCurrentScreen(ScreenState.LISTA);
+                setSelectedAlunoId(undefined);
+                return true; 
+            }
+
+            // Cenario 2: Se JÁ estiver na lista (Raiz da tela), bloqueia fechar o app
+            if (currentScreen === ScreenState.LISTA || currentScreen === ScreenState.LISTA_APAGADAS) {
+                return true; 
+            }
+
+            return false;
+        };
+
+        const backHandler = BackHandler.addEventListener(
+            "hardwareBackPress",
+            backAction
+        );
+
+        return () => backHandler.remove();
+    }, [currentScreen]);
     
     // Hooks para buscar dados (Ativos e Apagados)
     const { alunos: alunosAtivos, isLoading: loadingAtivos, error: errorAtivos, refetch: refetchAtivos } = useAlunos();
@@ -174,13 +201,16 @@ export default function AlunosScreen() {
                     {isShowingDeleted ? "Alunos Apagados" : "Alunos"}
                 </Text>
                  {/* Botão para alternar entre listas */}
-                 <TouchableOpacity onPress={toggleListMode} style={styles.headerButton}>
-                    <Ionicons 
-                        name={isShowingDeleted ? "list" : "trash-outline"} 
-                        size={24} 
-                        color="#003F72" 
-                    />
-                </TouchableOpacity>
+                 {/* APENAS ADMIN: Botão para alternar entre listas */}
+                 {isAdmin && (
+                    <TouchableOpacity onPress={toggleListMode} style={styles.headerButton}>
+                        <Ionicons 
+                            name={isShowingDeleted ? "list" : "trash-outline"} 
+                            size={24} 
+                            color="#003F72" 
+                        />
+                    </TouchableOpacity>
+                 )}
             </View>
 
             <FlatList
@@ -198,7 +228,8 @@ export default function AlunosScreen() {
                 contentContainerStyle={dataToShow.length === 0 ? styles.center : { paddingBottom: 80 }}
             />
             
-            {!isShowingDeleted && (
+            {/* APENAS ADMIN: Botão criar novo aluno */}
+            {!isShowingDeleted && isAdmin && (
                 <Fab onPress={() => setCurrentScreen(ScreenState.FORM_NEW)} />
             )}
         </ScreenContainer>

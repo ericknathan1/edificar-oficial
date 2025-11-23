@@ -1,7 +1,8 @@
 import { UsuarioResponse } from "@/src/core/types/usuario";
 import { Ionicons } from '@expo/vector-icons';
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import {
+    BackHandler,
     FlatList,
     StyleSheet,
     Text,
@@ -86,9 +87,33 @@ const UsuarioItem = ({ item, onPress }: UsuarioItemProps) => (
 );
 
 const UsuarioScreen = () => {
+    
     const [currentScreen, setCurrentScreen] = useState(ScreenState.LISTA);
     const [selectedUsuarioId, setSelectedUsuarioId] = useState<number | undefined>(undefined);
-    
+    useEffect(() => {
+        const backAction = () => {
+            // Cenario 1: Se estiver em detalhes, form, VOLTA pra lista
+            if (currentScreen !== ScreenState.LISTA && currentScreen !== ScreenState.LISTA_APAGADAS) {
+                setCurrentScreen(ScreenState.LISTA);
+                setSelectedUsuarioId(undefined);
+                return true; 
+            }
+
+            // Cenario 2: Se JÁ estiver na lista (Raiz da tela), bloqueia fechar o app
+            if (currentScreen === ScreenState.LISTA || currentScreen === ScreenState.LISTA_APAGADAS) {
+                return true; 
+            }
+
+            return false;
+        };
+
+        const backHandler = BackHandler.addEventListener(
+            "hardwareBackPress",
+            backAction
+        );
+
+        return () => backHandler.remove();
+    }, [currentScreen]);
     // Hooks
     const { usuarios: usuariosAtivos, isLoading: loadingAtivos, error: errorAtivos, refetch: refetchAtivos } = useUsuarios();
     const { usuarios: usuariosApagados, isLoading: loadingApagados, error: errorApagados, refetch: refetchApagados } = useUsuariosApagados();

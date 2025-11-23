@@ -1,7 +1,7 @@
 import { UsuarioDadosResponse } from '@/src/core/types/usuario';
 import { Ionicons } from '@expo/vector-icons';
-import React, { useState } from 'react';
-import { FlatList, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import React, { useEffect, useState } from 'react';
+import { BackHandler, FlatList, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 
 import { Button } from '@/src/shared/components/ui/button';
 import { Card } from '@/src/shared/components/ui/card';
@@ -71,8 +71,31 @@ const ProfessorItem = ({ item, onPress }: ProfessorItemProps) => (
 export default function ProfessoresScreen() {
     const [currentScreen, setCurrentScreen] = useState(ScreenState.LISTA);
     const [selectedProfessorId, setSelectedProfessorId] = useState<number | undefined>(undefined);
-    
     const { professores, isLoading, error, refetch } = useProfessores();
+    useEffect(() => {
+        const backAction = () => {
+            // Cenario 1: Se estiver em detalhes, VOLTA pra lista
+            if (currentScreen !== ScreenState.LISTA) {
+                setCurrentScreen(ScreenState.LISTA);
+                setSelectedProfessorId(undefined);
+                return true; 
+            }
+
+            // Cenario 2: Se JÁ estiver na lista (Raiz da tela), bloqueia fechar o app
+            if (currentScreen === ScreenState.LISTA) {
+                return true; 
+            }
+
+            return false;
+        };
+
+        const backHandler = BackHandler.addEventListener(
+            "hardwareBackPress",
+            backAction
+        );
+
+        return () => backHandler.remove();
+    }, [currentScreen]);
     
     const handleProfessorPress = (id: number) => {
         setSelectedProfessorId(id);

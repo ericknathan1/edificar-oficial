@@ -1,6 +1,6 @@
 import React, { ReactNode } from 'react';
-import { SafeAreaView, StyleSheet, ViewStyle, StatusBar } from 'react-native';
-
+import { StatusBar, StyleSheet, ViewStyle } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 interface Props {
   children: ReactNode;
   style?: ViewStyle;

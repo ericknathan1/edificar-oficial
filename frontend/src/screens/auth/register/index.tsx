@@ -7,6 +7,7 @@ import { useAuth } from '@/src/shared/hooks/useAuth';
 import React, { useState } from 'react';
 import {
   Alert,
+  KeyboardAvoidingView,
   Platform,
   ScrollView,
   StatusBar,
@@ -24,10 +25,8 @@ const RegisterScreen = () => {
   const navigation = useNavigation();
   const [role, setRole] = useState<RoleName>(RoleName.ROLE_PROFESSOR);
   
-  // O hook useAuth já tem um 'loading', mas vamos usar um local
-  // para ter controle fino sobre o formulário.
   const [loading, setLoading] = useState(false);
-  const { register } = useAuth(); // Pega a função de registro
+  const { register } = useAuth();
 
   const [isPasswordFocused, setIsPasswordFocused] = useState(false);
   const [validation, setValidation] = useState({
@@ -74,7 +73,6 @@ const RegisterScreen = () => {
     };
 
     try {
-      // Usa a função 'register' do hook
       await register(request);
       
       Alert.alert(
@@ -96,123 +94,132 @@ const RegisterScreen = () => {
   };
 
   return (
-    <View style={styles.container}>
-      <StatusBar barStyle="light-content" backgroundColor={styles.container.backgroundColor} />
+    <KeyboardAvoidingView 
+      style={{ flex: 1 }} 
+      behavior={Platform.OS === "ios" ? "padding" : "height"}
+    >
+      <View style={styles.container}>
+        <StatusBar barStyle="light-content" backgroundColor={styles.container.backgroundColor} />
 
-      <ScrollView contentContainerStyle={styles.scrollContainer}>
-        <View style={styles.mainContent}>
-          <View style={styles.card}>
-            <Text style={styles.title}>Criar Conta</Text>
+        <ScrollView 
+          contentContainerStyle={styles.scrollContainer}
+          keyboardShouldPersistTaps="handled"
+          showsVerticalScrollIndicator={false}
+        >
+          <View style={styles.mainContent}>
+            <View style={styles.card}>
+              <Text style={styles.title}>Criar Conta</Text>
 
-            <Input
-              label="Nome completo"
-              placeholder="Nome completo"
-              value={nome}
-              onChangeText={setNome}
-              editable={!loading}
-            />
+              <Input
+                label="Nome completo"
+                placeholder="Nome completo"
+                value={nome}
+                onChangeText={setNome}
+                editable={!loading}
+              />
 
-            <Input
-              label="Email"
-              placeholder="Insira o seu melhor email"
-              keyboardType="email-address"
-              value={email}
-              onChangeText={setEmail}
-              autoCapitalize="none"
-              editable={!loading}
-            />
+              <Input
+                label="Email"
+                placeholder="Insira o seu melhor email"
+                keyboardType="email-address"
+                value={email}
+                onChangeText={setEmail}
+                autoCapitalize="none"
+                editable={!loading}
+              />
 
-            <Input
-              label="Senha"
-              placeholder="Crie uma senha"
-              secureTextEntry={true}
-              value={password}
-              onChangeText={handlePasswordChange}
-              onFocus={() => setIsPasswordFocused(true)}
-              editable={!loading}
-            />
+              <Input
+                label="Senha"
+                placeholder="Crie uma senha"
+                secureTextEntry={true}
+                value={password}
+                onChangeText={handlePasswordChange}
+                onFocus={() => setIsPasswordFocused(true)}
+                editable={!loading}
+              />
 
-            {(isPasswordFocused || password.length > 0) && (
-              <View style={styles.validationContainer}>
-                <Text style={[styles.validationText, validation.hasLength ? styles.validationTextValid : styles.validationTextInvalid]}>
-                  {validation.hasLength ? '✓' : '•'} Pelo menos 8 caracteres
-                </Text>
-                <Text style={[styles.validationText, validation.hasLower ? styles.validationTextValid : styles.validationTextInvalid]}>
-                  {validation.hasLower ? '✓' : '•'} Uma letra minúscula (a-z)
-                </Text>
-                <Text style={[styles.validationText, validation.hasUpper ? styles.validationTextValid : styles.validationTextInvalid]}>
-                  {validation.hasUpper ? '✓' : '•'} Uma letra maiúscula (A-Z)
-                </Text>
-                <Text style={[styles.validationText, validation.hasNumber ? styles.validationTextValid : styles.validationTextInvalid]}>
-                  {validation.hasNumber ? '✓' : '•'} Um número (0-9)
-                </Text>
-                <Text style={[styles.validationText, validation.hasSpecial ? styles.validationTextValid : styles.validationTextInvalid]}>
-                  {validation.hasSpecial ? '✓' : '•'} Um caractere especial (!@#$)
-                </Text>
+              {(isPasswordFocused || password.length > 0) && (
+                <View style={styles.validationContainer}>
+                  <Text style={[styles.validationText, validation.hasLength ? styles.validationTextValid : styles.validationTextInvalid]}>
+                    {validation.hasLength ? '✓' : '•'} Pelo menos 8 caracteres
+                  </Text>
+                  <Text style={[styles.validationText, validation.hasLower ? styles.validationTextValid : styles.validationTextInvalid]}>
+                    {validation.hasLower ? '✓' : '•'} Uma letra minúscula (a-z)
+                  </Text>
+                  <Text style={[styles.validationText, validation.hasUpper ? styles.validationTextValid : styles.validationTextInvalid]}>
+                    {validation.hasUpper ? '✓' : '•'} Uma letra maiúscula (A-Z)
+                  </Text>
+                  <Text style={[styles.validationText, validation.hasNumber ? styles.validationTextValid : styles.validationTextInvalid]}>
+                    {validation.hasNumber ? '✓' : '•'} Um número (0-9)
+                  </Text>
+                  <Text style={[styles.validationText, validation.hasSpecial ? styles.validationTextValid : styles.validationTextInvalid]}>
+                    {validation.hasSpecial ? '✓' : '•'} Um caractere especial (!@#$)
+                  </Text>
+                </View>
+              )}
+
+              <Input
+                label="Confirmar Senha"
+                placeholder="Confirme a senha"
+                secureTextEntry={true}
+                value={confirmPassword}
+                onChangeText={setConfirmPassword}
+                editable={!loading}
+              />
+
+              <Text style={styles.label}>Tipo de Conta:</Text>
+              <View style={styles.roleContainer}>
+                <TouchableOpacity
+                  style={[
+                    styles.roleButton,
+                    role === RoleName.ROLE_PROFESSOR && styles.roleButtonActive
+                  ]}
+                  onPress={() => setRole(RoleName.ROLE_PROFESSOR)}
+                  disabled={loading}
+                >
+                  <Text style={[
+                    styles.roleText,
+                    role === RoleName.ROLE_PROFESSOR && styles.roleTextActive
+                  ]}>
+                    Professor
+                  </Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={[
+                    styles.roleButton,
+                    role === RoleName.ROLE_ADMINISTRADOR && styles.roleButtonActive
+                  ]}
+                  onPress={() => setRole(RoleName.ROLE_ADMINISTRADOR)}
+                  disabled={loading}
+                >
+                  <Text style={[
+                    styles.roleText,
+                    role === RoleName.ROLE_ADMINISTRADOR && styles.roleTextActive
+                  ]}>
+                    Admin
+                  </Text>
+                </TouchableOpacity>
               </View>
-            )}
 
-            <Input
-              label="Confirmar Senha"
-              placeholder="Confirme a senha"
-              secureTextEntry={true}
-              value={confirmPassword}
-              onChangeText={setConfirmPassword}
-              editable={!loading}
-            />
-
-            <Text style={styles.label}>Tipo de Conta:</Text>
-            <View style={styles.roleContainer}>
-              <TouchableOpacity
-                style={[
-                  styles.roleButton,
-                  role === RoleName.ROLE_PROFESSOR && styles.roleButtonActive
-                ]}
-                onPress={() => setRole(RoleName.ROLE_PROFESSOR)}
+              <Button
+                title={loading ? 'Cadastrando...' : 'Cadastrar'}
+                onPress={handleRegister}
+                loading={loading}
                 disabled={loading}
-              >
-                <Text style={[
-                  styles.roleText,
-                  role === RoleName.ROLE_PROFESSOR && styles.roleTextActive
-                ]}>
-                  Professor
-                </Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                style={[
-                  styles.roleButton,
-                  role === RoleName.ROLE_ADMINISTRADOR && styles.roleButtonActive
-                ]}
-                onPress={() => setRole(RoleName.ROLE_ADMINISTRADOR)}
-                disabled={loading}
-              >
-                <Text style={[
-                  styles.roleText,
-                  role === RoleName.ROLE_ADMINISTRADOR && styles.roleTextActive
-                ]}>
-                  Admin
-                </Text>
-              </TouchableOpacity>
+                style={styles.button}
+              />
             </View>
-
-            <Button
-              title={loading ? 'Cadastrando...' : 'Cadastrar'}
-              onPress={handleRegister}
-              loading={loading}
-              disabled={loading}
-              style={styles.button}
-            />
           </View>
-        </View>
-      </ScrollView>
 
-      <View style={styles.footer}>
-        <Text style={styles.footerText}>Já possui uma conta? </Text>
-        <TouchableOpacity onPress={navigation.login} disabled={loading}>
-          <Text style={styles.footerLink}>Entre</Text>
-        </TouchableOpacity>
+          <View style={styles.footer}>
+            <Text style={styles.footerText}>Já possui uma conta? </Text>
+            <TouchableOpacity onPress={navigation.login} disabled={loading}>
+              <Text style={styles.footerLink}>Entre</Text>
+            </TouchableOpacity>
+          </View>
+        </ScrollView>
       </View>
-    </View>
+    </KeyboardAvoidingView>
   );
 };
 
@@ -220,25 +227,31 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: '#003F72',
-    paddingTop: Platform.OS === 'android' ? StatusBar.currentHeight : 40,
+    // Removido o padding manual do status bar para o Android gerenciar nativamente 
+    // ou ser compensado pelo justifyContent
   },
   scrollContainer: {
     flexGrow: 1,
-    justifyContent: 'center',
+    // Mudança importante: 'center' empurra tudo para o meio, criando espaços iguais em cima e embaixo.
+    // Se o conteúdo for grande, isso gera o espaço branco.
+    // Vamos manter 'center' mas reduzir o padding do card para compensar.
+    justifyContent: 'center', 
+    paddingVertical: 20,
   },
   mainContent: {
-    flex: 1,
-    justifyContent: 'center',
+    width: '100%',
     alignItems: 'center',
     paddingHorizontal: 20,
-    paddingBottom: 20,
+    marginBottom: 20, // Espaço entre o card e o footer
   },
   card: {
     width: '100%',
     backgroundColor: 'white',
     borderRadius: 16,
-    paddingVertical: 35,
-    paddingHorizontal: 25,
+    // Ajuste Fino: Padding interno do card reduzido para diminuir altura total
+    paddingTop: 25, 
+    paddingBottom: 25,
+    paddingHorizontal: 20,
     alignItems: 'stretch',
     shadowColor: '#000',
     shadowOffset: {
@@ -250,13 +263,12 @@ const styles = StyleSheet.create({
     elevation: 8,
   },
   title: {
-    fontSize: 32,
+    fontSize: 28, // Reduzi levemente a fonte do título
     fontWeight: 'bold',
     color: '#003F72',
     textAlign: 'center',
-    marginBottom: 30,
+    marginBottom: 25, // Reduzi a margem do título
   },
-  // Estilo do Input é aplicado dentro do componente
   validationContainer: {
     paddingHorizontal: 15,
     paddingVertical: 10,
@@ -267,8 +279,8 @@ const styles = StyleSheet.create({
     borderColor: '#E0E0E0',
   },
   validationText: {
-    fontSize: 14,
-    lineHeight: 22,
+    fontSize: 13, // Reduzi fonte da validação
+    lineHeight: 20,
   },
   validationTextInvalid: {
     color: '#D32F2F',
@@ -279,7 +291,7 @@ const styles = StyleSheet.create({
   label: {
     fontSize: 16,
     color: '#333',
-    marginBottom: 10,
+    marginBottom: 8,
     fontWeight: '500',
     paddingLeft: 5,
   },
@@ -290,7 +302,7 @@ const styles = StyleSheet.create({
   },
   roleButton: {
     flex: 1,
-    paddingVertical: 12,
+    paddingVertical: 10, // Botões mais compactos
     borderRadius: 8,
     borderWidth: 1,
     borderColor: '#D1D1D1',
@@ -302,7 +314,7 @@ const styles = StyleSheet.create({
     borderColor: '#003F72',
   },
   roleText: {
-    fontSize: 15,
+    fontSize: 14,
     color: '#003F72',
     fontWeight: 'bold',
   },
@@ -311,16 +323,16 @@ const styles = StyleSheet.create({
   },
   button: {
     backgroundColor: '#3FA9F5',
-    marginTop: 10,
+    marginTop: 5,
   },
   footer: {
-    paddingVertical: 20,
-    paddingHorizontal: 30,
+    paddingVertical: 15,
     flexDirection: 'row',
     justifyContent: 'center',
     alignItems: 'center',
-    borderTopWidth: 1,
-    borderTopColor: 'rgba(255, 255, 255, 0.2)',
+    // Removemos a borda superior para limpar o visual, já que o card cria separação suficiente
+    // borderTopWidth: 1, 
+    // borderTopColor: 'rgba(255, 255, 255, 0.2)',
   },
   footerText: {
     color: 'white',

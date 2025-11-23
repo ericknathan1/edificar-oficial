@@ -10,6 +10,7 @@ import { Spinner } from '@/src/shared/components/ui/spinner';
 
 import { AulaResponse } from '@/src/core/types/aulas';
 import { StatusAula } from '@/src/shared/enums/statusAula';
+import { usePermissions } from '@/src/shared/hooks/usePermissions';
 import { formatTitleCase } from '@/src/shared/resources/formatters/fortmatTitleCase';
 import AulaService from '@/src/shared/services/aula';
 
@@ -21,6 +22,7 @@ interface Props {
 }
 
 const AulaDetalheScreen = ({ aulaId, onBack, onEdit, onChamada }: Props) => {
+  const { isAdmin } = usePermissions();
   const [aula, setAula] = useState<AulaResponse | null>(null);
   const [loading, setLoading] = useState(true);
   const [processing, setProcessing] = useState(false);
@@ -119,7 +121,9 @@ const AulaDetalheScreen = ({ aulaId, onBack, onEdit, onChamada }: Props) => {
                         loading={processing}
                         style={styles.button}
                     />
-                    <Button 
+                    {isAdmin && (
+                      <>
+                      <Button 
                         title="Editar Dados" 
                         onPress={() => onEdit(aulaId)} 
                         variant="warning" 
@@ -133,6 +137,9 @@ const AulaDetalheScreen = ({ aulaId, onBack, onEdit, onChamada }: Props) => {
                         disabled={processing}
                         style={styles.button}
                     />
+                      </>
+                    )}
+                    
                 </>
             )}
 
