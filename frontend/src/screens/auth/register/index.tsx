@@ -14,7 +14,7 @@ import {
   StyleSheet,
   Text,
   TouchableOpacity,
-  View,
+  View
 } from 'react-native';
 
 const RegisterScreen = () => {
@@ -95,8 +95,9 @@ const RegisterScreen = () => {
 
   return (
     <KeyboardAvoidingView 
-      style={{ flex: 1 }} 
-      behavior={Platform.OS === "ios" ? "padding" : "height"}
+     style={{flex: 1, backgroundColor: styles.container.backgroundColor}}
+     behavior={Platform.OS === "ios" ? "padding" : "height"} // Ajuste para iOS
+    keyboardVerticalOffset={0}
     >
       <View style={styles.container}>
         <StatusBar barStyle="light-content" backgroundColor={styles.container.backgroundColor} />
@@ -226,18 +227,17 @@ const RegisterScreen = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#003F72',
+    backgroundColor: '#003F72'
     // Removido o padding manual do status bar para o Android gerenciar nativamente 
     // ou ser compensado pelo justifyContent
   },
   scrollContainer: {
     flexGrow: 1,
-    // Mudança importante: 'center' empurra tudo para o meio, criando espaços iguais em cima e embaixo.
-    // Se o conteúdo for grande, isso gera o espaço branco.
-    // Vamos manter 'center' mas reduzir o padding do card para compensar.
-    justifyContent: 'center', 
-    paddingVertical: 20,
-  },
+    justifyContent: 'center',
+    // Isso permite que o ScrollView se comporte como esperado, rolando do topo se necessário.
+    // Se quiser um "push" inicial, use um padding maior.
+    paddingVertical: 40
+    },
   mainContent: {
     width: '100%',
     alignItems: 'center',
