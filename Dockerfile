@@ -23,9 +23,7 @@ FROM eclipse-temurin:17-jdk AS mobile-build
 
 # Instala Node, npm, etc. (exemplo simples, ajuste versões conforme seu projeto)
 RUN apt-get update && \
-    apt-get install -y curl git unzip && \
-    curl -fsSL https://deb.nodesource.com/setup_20.x | bash - && \
-    apt-get install -y nodejs && \
+    apt-get install -y curl git unzip nodejs npm && \
     npm install -g yarn && \
     rm -rf /var/lib/apt/lists/*
 
