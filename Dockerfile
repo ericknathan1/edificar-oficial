@@ -64,8 +64,11 @@ WORKDIR /app
 # Copia o JAR do backend
 COPY --from=backend-build /backend/target/*.jar app.jar
 
+# Garante que a pasta exista (não é obrigatório, mas deixa claro)
+RUN mkdir -p /app/apk
+
 # Copia o APK gerado pelo estágio mobile
-COPY --from=mobile-build /frontend/android/app/build/outputs/apk/release/app-release.apk ./apk/app-release.apk
+COPY --from=mobile-build /frontend/android/app/build/outputs/apk/release/app-release.apk /app/apk/app-release.apk
 
 EXPOSE 8417
 
