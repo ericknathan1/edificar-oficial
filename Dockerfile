@@ -47,7 +47,7 @@ RUN npm install
 # Copia o restante do projeto mobile
 COPY frontend/ .
 
-RUN npx expo prebuild --platform android --no-interactive
+RUN npx expo prebuild --platform android
 RUN ls
 # Dá permissão e gera o APK release
 WORKDIR /frontend/android
