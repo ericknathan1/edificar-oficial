@@ -19,17 +19,13 @@ pipeline {
                 }
             }
         }
-        
+
         stage('Construir Imagem Docker') {
             steps {
                 script {
                     def appName = 'edificar'
                     def imageTag = "${appName}:${env.BUILD_ID}"
-
-                    dir('backend') {
-                      sh "docker build -t ${imageTag} ."
-                    }
-
+                    sh "docker build -t ${imageTag} ."
                 }
             }
         }
