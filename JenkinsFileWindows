@@ -24,7 +24,7 @@ pipeline {
         stage('Construir Imagem Docker (Backend + APK)') {
             steps {
                 script {
-                   withEnv(['DOCKER_HOST=tcp://localhost:2375']) { // ALTERNATIVA: Use esta linha se o Docker Desktop estiver configurado para expor o daemon na porta 2375 (Atenção à Segurança!)
+                  withEnv(['DOCKER_HOST=npipe:////./pipe/docker_engine']) { // Revertido para Named Pipe (Recomendado)
                         def appName = 'edificar'
                         def imageTag = "${appName}:${env.BUILD_ID}"
                         def dockerFilePath = 'backend/Dockerfile'
