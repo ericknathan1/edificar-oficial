@@ -48,7 +48,7 @@ RUN npm install
 COPY frontend/ .
 
 RUN npx expo prebuild --platform android --no-interactive
-
+RUN ls
 # Dá permissão e gera o APK release
 WORKDIR /frontend/android
 RUN chmod +x ./gradlew && \
