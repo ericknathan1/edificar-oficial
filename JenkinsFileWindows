@@ -24,37 +24,36 @@ pipeline {
         stage('Construir Imagem Docker (Backend + APK)') {
             steps {
                 script {
-                    def appName = 'edificar'
-                    def imageTag = "${appName}:${env.BUILD_ID}"
-                    def dockerFilePath = 'backend/Dockerfile'
-                    def frontendArtifactImageTag = "apk-artifact-temp:${env.BUILD_ID}"
-                    
-                    // 1. Constrói a Imagem Principal do Backend usando o target 'backend-runtime'
-                    // O contexto de build é o diretório raiz do projeto ('.'), acessando o Dockerfile em 'backend/Dockerfile'
-                    bat "docker build -f ${dockerFilePath} -t ${imageTag} --target backend-runtime ."
-                    echo 'Imagem Docker do Backend construída.'
-                    
-                    // 2. Constrói a Imagem de Artefato (APK) usando o target 'apk-artifact'
-                    bat "docker build -f ${dockerFilePath} -t ${frontendArtifactImageTag} --target apk-artifact ."
-                    
-                    // 3. Cria um container temporário a partir da imagem de artifact para extração
-                    def containerId = bat(
-                        script: "docker create ${frontendArtifactImageTag}", 
-                        returnStdout: true
-                    ).trim()
-                    echo "Container temporário criado para APK: ${containerId}"
+                    withEnv(['DOCKER_HOST=npipe:////./pipe/docker_engine']) { // Adicionado para forçar a conexão
+                        def appName = 'edificar'
+                        def imageTag = "${appName}:${env.BUILD_ID}"
+                        def dockerFilePath = 'backend/Dockerfile'
+                        def frontendArtifactImageTag = "apk-artifact-temp:${env.BUILD_ID}"
+                        
+                        // 1. Constrói a Imagem Principal do Backend 
+                        bat "docker build -f ${dockerFilePath} -t ${imageTag} --target backend-runtime ."
+                        echo 'Imagem Docker do Backend construída.'
+                        
+                        // 2. Constrói a Imagem de Artefato (APK)
+                        bat "docker build -f ${dockerFilePath} -t ${frontendArtifactImageTag} --target apk-artifact ."
+                        
+                        // ... (Lógica de extração e limpeza) ...
+                        
+                        def containerId = bat(
+                            script: "docker create ${frontendArtifactImageTag}", 
+                            returnStdout: true
+                        ).trim()
+                        echo "Container temporário criado para APK: ${containerId}"
 
-                    // 4. Copia o APK de dentro do container para o workspace do Jenkins
-                    bat "docker cp ${containerId}:/app/edificar-app-release.apk frontend/app-release-${env.BUILD_ID}.apk"
-                    echo "APK de Release copiado para: frontend/app-release-${env.BUILD_ID}.apk"
-                    
-                    // 5. Limpeza: Remove o container temporário e a imagem de artefato do frontend
-                    bat "docker rm ${containerId}"
-                    bat "docker rmi ${frontendArtifactImageTag}"
+                        bat "docker cp ${containerId}:/app/edificar-app-release.apk frontend/app-release-${env.BUILD_ID}.apk"
+                        echo "APK de Release copiado para: frontend/app-release-${env.BUILD_ID}.apk"
+                        
+                        bat "docker rm ${containerId}"
+                        bat "docker rmi ${frontendArtifactImageTag}"
+                    }
                 }
             }
         }
-
         stage('Fazer Deploy') {
             steps {
                 script {
