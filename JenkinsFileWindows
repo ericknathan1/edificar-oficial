@@ -26,7 +26,7 @@ pipeline {
                     // ATENÇÃO: O agente Jenkins precisa ter o Node.js, Android SDK e credenciais de assinatura (keystore) configuradas.
                     dir('frontend/android') {
                         // Comando para gerar a APK de release
-                        bat './gradlew assembleRelease'
+                        bat 'gradlew.bat assembleRelease'
                     }
                     echo 'APK de Release gerado em frontend/android/app/build/outputs/apk/release/app-release.apk'
                 }
