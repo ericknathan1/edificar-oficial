@@ -11,7 +11,6 @@ import org.springframework.web.bind.annotation.RestController;
 
 import com.app.edificar.DTO.response.TurmaResponse;
 import com.app.edificar.DTO.response.UsuarioDadosResponse;
-import com.app.edificar.DTO.response.UsuarioResponse;
 import com.app.edificar.service.UsuarioService;
 
 @CrossOrigin("*")
@@ -38,9 +37,9 @@ public class ProfessoresController {
         return ResponseEntity.ok(this.usuarioService.retornarTurmasDeUmProfessor(id));
     }
 
-   @GetMapping("/{id}")
-   public ResponseEntity<List<UsuarioResponse>> listarAulasdeProfessor(@PathVariable("id") Long id){
-       return ResponseEntity.ok(this.usuarioService.retornarUsuarios());
-   }
+//    @GetMapping("/{id}")
+//    public ResponseEntity<List<UsuarioResponse>> listarAulasdeProfessor(@PathVariable("id") Long id){
+//        return ResponseEntity.ok(this.usuarioService.retornarUsuarios());
+//    }
 
 }

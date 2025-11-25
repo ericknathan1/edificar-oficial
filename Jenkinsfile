@@ -20,6 +20,19 @@ pipeline {
             }
         }
 
+        stage('Compilar APK React Native') { // NOVO STAGE: Compilação do APK
+            steps {
+                script {
+                    // ATENÇÃO: O agente Jenkins precisa ter o Node.js, Android SDK e credenciais de assinatura (keystore) configuradas.
+                    dir('frontend/android') {
+                        // Comando para gerar a APK de release
+                        sh './gradlew assembleRelease'
+                    }
+                    echo 'APK de Release gerado em frontend/android/app/build/outputs/apk/release/app-release.apk'
+                }
+            }
+        }
+
         stage('Construir Imagem Docker') {
             steps {
                 script {
