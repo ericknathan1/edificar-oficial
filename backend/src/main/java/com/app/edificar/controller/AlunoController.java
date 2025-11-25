@@ -62,7 +62,7 @@ public class AlunoController {
     }
 
     @PostMapping
-    public ResponseEntity<AlunoResponse> criarAluno(AlunoRequest request) {
+    public ResponseEntity<AlunoResponse> criarAluno(@RequestBody AlunoRequest request) {
         return ResponseEntity.status(HttpStatus.CREATED).body(this.service.salvarAluno(request));
     }
 

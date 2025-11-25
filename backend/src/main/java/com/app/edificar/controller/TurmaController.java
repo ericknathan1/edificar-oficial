@@ -47,12 +47,12 @@ public class TurmaController {
     }
     @PutMapping("/{id}")
     public ResponseEntity<TurmaResponse> atualizarTurma(@PathVariable("id") Long id,
-    TurmaRequest request){
+    @RequestBody TurmaRequest request){
         return ResponseEntity.ok(this.turmaService.mudarTurma(id, request));
     }
     @PatchMapping("/{id}")
     public ResponseEntity<TurmaResponse> atualizarStatusDaTurma(@PathVariable("id") Long id,
-    TurmaStatusRequest request){
+    @RequestBody TurmaStatusRequest request){
         return ResponseEntity.ok(this.turmaService.mudarStatusTurma(id, request));
     }
     @GetMapping
