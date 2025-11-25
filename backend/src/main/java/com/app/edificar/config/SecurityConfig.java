@@ -31,6 +31,7 @@ public class SecurityConfig {
    public static final String [] ENDPOINTS_PADRAO = {
     "/usuarios/login",
     "/usuarios/cadastro",
+    "/web/download/app",
     "/h2-console",
     // 🔓 Swagger/OpenAPI UI
     "/v3/api-docs/**",
