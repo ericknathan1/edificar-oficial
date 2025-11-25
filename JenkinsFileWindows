@@ -20,29 +20,37 @@ pipeline {
             }
         }
 
-        stage('Compilar APK React Native') { // NOVO STAGE: Compilação do APK
-            steps {
-                script {
-                    // ATENÇÃO: O agente Jenkins precisa ter o Node.js, Android SDK e credenciais de assinatura (keystore) configuradas.
-                    dir('frontend/android') {
-                        // Comando para gerar a APK de release
-                        bat 'gradlew.bat assembleRelease'
-                    }
-                    echo 'APK de Release gerado em frontend/android/app/build/outputs/apk/release/app-release.apk'
-                }
-            }
-        }
 
-        stage('Construir Imagem Docker') {
+        stage('Construir Imagem Docker (Backend + APK)') {
             steps {
                 script {
                     def appName = 'edificar'
                     def imageTag = "${appName}:${env.BUILD_ID}"
+                    def dockerFilePath = 'backend/Dockerfile'
+                    def frontendArtifactImageTag = "apk-artifact-temp:${env.BUILD_ID}"
+                    
+                    // 1. Constrói a Imagem Principal do Backend usando o target 'backend-runtime'
+                    // O contexto de build é o diretório raiz do projeto ('.'), acessando o Dockerfile em 'backend/Dockerfile'
+                    bat "docker build -f ${dockerFilePath} -t ${imageTag} --target backend-runtime ."
+                    echo 'Imagem Docker do Backend construída.'
+                    
+                    // 2. Constrói a Imagem de Artefato (APK) usando o target 'apk-artifact'
+                    bat "docker build -f ${dockerFilePath} -t ${frontendArtifactImageTag} --target apk-artifact ."
+                    
+                    // 3. Cria um container temporário a partir da imagem de artifact para extração
+                    def containerId = bat(
+                        script: "docker create ${frontendArtifactImageTag}", 
+                        returnStdout: true
+                    ).trim()
+                    echo "Container temporário criado para APK: ${containerId}"
 
-                    dir('backend') {
-                      bat "docker build -t ${imageTag} ."
-                    }
-
+                    // 4. Copia o APK de dentro do container para o workspace do Jenkins
+                    bat "docker cp ${containerId}:/app/edificar-app-release.apk frontend/app-release-${env.BUILD_ID}.apk"
+                    echo "APK de Release copiado para: frontend/app-release-${env.BUILD_ID}.apk"
+                    
+                    // 5. Limpeza: Remove o container temporário e a imagem de artefato do frontend
+                    bat "docker rm ${containerId}"
+                    bat "docker rmi ${frontendArtifactImageTag}"
                 }
             }
         }
