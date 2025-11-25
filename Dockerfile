@@ -43,8 +43,8 @@ RUN mkdir -p $ANDROID_HOME/cmdline-tools && \
 WORKDIR /frontend
 
 # Dependências do RN
-COPY frontend/package.json mobile/yarn.lock ./
-RUN yarn install
+COPY frontend/package.json frontend/package-lock.json ./
+RUN npm install
 
 # Copia o restante do projeto mobile
 COPY frontend/ .
