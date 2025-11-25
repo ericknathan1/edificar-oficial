@@ -24,19 +24,18 @@ pipeline {
         stage('Construir Imagem Docker (Backend + APK)') {
             steps {
                 script {
-                    withEnv(['DOCKER_HOST=npipe:////./pipe/docker_engine']) { // Adicionado para forçar a conexão
+                   withEnv(['DOCKER_HOST=tcp://localhost:2375']) { // ALTERNATIVA: Use esta linha se o Docker Desktop estiver configurado para expor o daemon na porta 2375 (Atenção à Segurança!)
                         def appName = 'edificar'
                         def imageTag = "${appName}:${env.BUILD_ID}"
                         def dockerFilePath = 'backend/Dockerfile'
+   
                         def frontendArtifactImageTag = "apk-artifact-temp:${env.BUILD_ID}"
                         
                         // 1. Constrói a Imagem Principal do Backend 
                         bat "docker build -f ${dockerFilePath} -t ${imageTag} --target backend-runtime ."
                         echo 'Imagem Docker do Backend construída.'
-                        
                         // 2. Constrói a Imagem de Artefato (APK)
                         bat "docker build -f ${dockerFilePath} -t ${frontendArtifactImageTag} --target apk-artifact ."
-                        
                         // ... (Lógica de extração e limpeza) ...
                         
                         def containerId = bat(
@@ -49,6 +48,7 @@ pipeline {
                         echo "APK de Release copiado para: frontend/app-release-${env.BUILD_ID}.apk"
                         
                         bat "docker rm ${containerId}"
+                  
                         bat "docker rmi ${frontendArtifactImageTag}"
                     }
                 }
