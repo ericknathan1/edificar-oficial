@@ -70,9 +70,7 @@ RUN npx expo prebuild --platform android --clean
 # Build do APK (Gradle)
 WORKDIR /frontend/android
 RUN chmod +x ./gradlew && \
-    # -q: Quiet (apenas erros)
-    # --console=plain: Remove formatação de terminal interativo (barra de progresso)
-    # -x test: Pula os testes unitários para agilizar o build
+    dos2unix ./gradlew && \
     ./gradlew assembleRelease -q --console=plain -x test
 
 #########################################
