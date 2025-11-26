@@ -39,9 +39,16 @@ pipeline {
                     // Para e remove container existente, se houver
                     sh "docker stop ${appName} || exit 0"
                     sh "docker rm -v ${appName} || exit 0"
-
-                    // Executar o novo container
-                    sh "docker run -d --name ${appName} -p 8417:8417 ${imageTag}"
+                    
+                    sh """
+                        docker run -d \
+                        --name ${appName} \
+                        --memory=6g \
+                        --cpus="2" \
+                        -v /data/app_producao:/var/lib/app_dados \
+                        -p 8417:8417 \
+                        ${imageTag}
+                    """
 
                 }
             }
