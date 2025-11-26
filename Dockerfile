@@ -48,9 +48,18 @@ RUN mkdir -p $ANDROID_HOME/cmdline-tools && \
     rm sdk.zip && \
     mv $ANDROID_HOME/cmdline-tools/cmdline-tools $ANDROID_HOME/cmdline-tools/latest
 
-# Aceita licenças e instala pacotes (Redireciona output para /dev/null para silenciar)
+# --- INSTALAÇÃO DE PACOTES ANDROID (FIX DO ERRO) ---
+# Adicionamos 'ndk;27.1.12297006' e 'cmake;3.22.1' explicitamente
 RUN yes | sdkmanager --sdk_root=${ANDROID_HOME} --licenses > /dev/null 2>&1 && \
-    yes | sdkmanager --sdk_root=${ANDROID_HOME} "platform-tools" "platforms;android-34" "build-tools;34.0.0" > /dev/null 2>&1
+    yes | sdkmanager --sdk_root=${ANDROID_HOME} \
+        "platform-tools" \
+        "platforms;android-34" \
+        "build-tools;34.0.0" \
+        "ndk;27.1.12297006" \
+        "cmake;3.22.1" > /dev/null 2>&1
+
+# Define a variável de ambiente para o NDK (ajuda o Gradle a encontrá-lo)
+ENV ANDROID_NDK_HOME=${ANDROID_HOME}/ndk/27.1.12297006
 
 WORKDIR /frontend
 
