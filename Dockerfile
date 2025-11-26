@@ -5,11 +5,11 @@ FROM maven:3.9.9-amazoncorretto-21-alpine AS backend-build
 
 WORKDIR /backend
 
-# Copia apenas o pom.xml para baixar dependências (melhor cache)
+# Copia apenas o pom.xml para baixar dependências (cache eficiente)
 COPY backend/pom.xml .
 
-# -B: Modo Batch (remove cores e barras de progresso interativas)
-# -q: Quiet (imprime apenas erros e avisos críticos)
+# -B: Batch mode (sem cores/interativo)
+# -q: Quiet (apenas erros/avisos)
 RUN mvn dependency:go-offline -B -q
 
 COPY backend/src ./src
@@ -20,55 +20,58 @@ RUN mvn clean package -DskipTests -B -q
 #########################################
 FROM eclipse-temurin:21-jdk AS mobile-build
 
-# Instalação de dependências do sistema
-# -qq: Modo silencioso do apt-get
+# Instalação de dependências do sistema e utilitários
+# Adicionado 'dos2unix' para corrigir arquivos vindos do Windows
 RUN apt-get update -qq && \
     apt-get install -yqq --no-install-recommends \
     curl \
     git \
     unzip \
-    nodejs \
-    npm \
-    && npm install -g yarn --silent \
-    && rm -rf /var/lib/apt/lists/*
+    dos2unix \
+    gnupg
 
-# Configuração do Android SDK
+# --- INSTALAÇÃO DO NODE.JS 22 ---
+# Baixa o script de setup oficial do NodeSource para a versão 22
+RUN curl -fsSL https://deb.nodesource.com/setup_22.x | bash - && \
+    apt-get install -yqq nodejs && \
+    npm install -g yarn --silent && \
+    rm -rf /var/lib/apt/lists/*
+
+# --- CONFIGURAÇÃO ANDROID SDK ---
 ENV ANDROID_HOME=/opt/android-sdk
 ENV PATH=$ANDROID_HOME/cmdline-tools/latest/bin:$ANDROID_HOME/platform-tools:$PATH
 
-# Baixa e configura o Command Line Tools
-# Redirecionamos a saída do unzip para /dev/null para evitar logs de extração de arquivo por arquivo
+# Baixa Command Line Tools
 RUN mkdir -p $ANDROID_HOME/cmdline-tools && \
     curl -Lo sdk.zip https://dl.google.com/android/repository/commandlinetools-linux-11076708_latest.zip && \
     unzip -q sdk.zip -d $ANDROID_HOME/cmdline-tools && \
     rm sdk.zip && \
     mv $ANDROID_HOME/cmdline-tools/cmdline-tools $ANDROID_HOME/cmdline-tools/latest
 
-# Aceita licenças e instala plataformas e ferramentas de build
-# Redirecionamos a saída para /dev/null para evitar o spam de licenças, mantendo a entrada do 'yes'
+# Aceita licenças e instala pacotes (Redireciona output para /dev/null para silenciar)
 RUN yes | sdkmanager --sdk_root=${ANDROID_HOME} --licenses > /dev/null 2>&1 && \
     yes | sdkmanager --sdk_root=${ANDROID_HOME} "platform-tools" "platforms;android-34" "build-tools;34.0.0" > /dev/null 2>&1
 
 WORKDIR /frontend
 
-# Copia dependências do NPM
+# Copia dependências do Frontend
 COPY frontend/package.json frontend/package-lock.json ./
 
-# Instala dependências do projeto
-# --silent: Oculta logs de instalação
-# --no-progress: Remove barra de progresso
+# Instala dependências (Silencioso)
 RUN npm install --silent --no-progress
 
-# Copia o código fonte do frontend
+# Copia o código fonte
 COPY frontend/ .
 
-# Expo Prebuild
-# --no-install: Não tenta instalar deps novamente
-# --clean: Garante que builds anteriores não interfiram
-RUN npx expo prebuild --platform android --clean
+# Gera as pastas nativas do Android (Prebuild)
+RUN npx expo prebuild --platform android --no-install --clean
 
-# Build do APK (Gradle)
 WORKDIR /frontend/android
+
+# Prepara e executa o Build do Gradle
+# 1. chmod: Garante permissão de execução
+# 2. dos2unix: Remove quebras de linha do Windows (\r\n) que quebram o build no Linux
+# 3. gradlew: Roda em modo silencioso e sem console interativo
 RUN chmod +x ./gradlew && \
     dos2unix ./gradlew && \
     ./gradlew assembleRelease -q --console=plain -x test
@@ -80,13 +83,11 @@ FROM amazoncorretto:21-alpine
 
 WORKDIR /app
 
-# Copia o JAR do backend (o nome do jar pode variar, garantindo que pegue o correto)
+# Copia o JAR compilado no estágio 1
 COPY --from=backend-build /backend/target/*.jar app.jar
 
-# Cria diretório para o APK
+# Cria diretório e copia o APK compilado no estágio 2
 RUN mkdir -p /app/apk
-
-# Copia o APK gerado
 COPY --from=mobile-build /frontend/android/app/build/outputs/apk/release/app-release.apk /app/apk/app-release.apk
 
 EXPOSE 8417
