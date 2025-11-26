@@ -5,11 +5,8 @@ FROM maven:3.9.9-amazoncorretto-21-alpine AS backend-build
 
 WORKDIR /backend
 
-# Copia apenas o pom.xml para baixar dependências (cache eficiente)
+# Copia apenas o pom.xml para cache
 COPY backend/pom.xml .
-
-# -B: Batch mode (sem cores/interativo)
-# -q: Quiet (apenas erros/avisos)
 RUN mvn dependency:go-offline -B -q
 
 COPY backend/src ./src
@@ -20,17 +17,17 @@ RUN mvn clean package -DskipTests -B -q
 #########################################
 FROM eclipse-temurin:21-jdk AS mobile-build
 
-# Define o limite de memória do Java (Gradle) para 4GB
-# ATENÇÃO: O ambiente onde o build rodar precisa ter > 5GB de RAM livre
-ENV _JAVA_OPTIONS="-Xmx4g"
+# Limite de memória para o PROCESSO DE BUILD (Gradle)
+# Ajustado para não estourar containers pequenos
+ENV _JAVA_OPTIONS="-Xmx2g"
 
 # Instalação de dependências + Node 22 + Limpeza imediata
+# Removido 'dos2unix' conforme solicitado
 RUN apt-get update -qq && \
-    apt-get install -yqq --no-install-recommends curl git unzip dos2unix gnupg && \
+    apt-get install -yqq --no-install-recommends curl git unzip gnupg && \
     curl -fsSL https://deb.nodesource.com/setup_22.x | bash - && \
     apt-get install -yqq nodejs && \
     npm install -g yarn --silent && \
-    # Limpa cache do apt para economizar espaço em disco
     apt-get clean && \
     rm -rf /var/lib/apt/lists/*
 
@@ -45,7 +42,7 @@ RUN mkdir -p $ANDROID_HOME/cmdline-tools && \
     rm sdk.zip && \
     mv $ANDROID_HOME/cmdline-tools/cmdline-tools $ANDROID_HOME/cmdline-tools/latest
 
-# Instala NDK e CMake (Versões específicas exigidas pelo erro anterior)
+# Instala NDK e CMake específicos
 RUN yes | sdkmanager --sdk_root=${ANDROID_HOME} --licenses > /dev/null 2>&1 && \
     yes | sdkmanager --sdk_root=${ANDROID_HOME} \
         "platform-tools" \
@@ -58,24 +55,18 @@ ENV ANDROID_NDK_HOME=${ANDROID_HOME}/ndk/27.1.12297006
 
 WORKDIR /frontend
 
-# Copia dependências e instala (com limpeza de cache npm)
+# Instala deps e limpa cache
 COPY frontend/package.json frontend/package-lock.json ./
 RUN npm install --silent --no-progress && npm cache clean --force
 
-# Copia código fonte
+# Copia código e faz o prebuild
 COPY frontend/ .
-
-# Prebuild do Expo
 RUN npx expo prebuild --platform android --no-install --clean
 
 WORKDIR /frontend/android
 
-# Build do Gradle
-# chmod: Permissão de execução
-# dos2unix: Garante quebras de linha Linux
-# assembleRelease: Gera o APK
+# Build do Gradle (Sem dos2unix)
 RUN chmod +x ./gradlew && \
-    dos2unix ./gradlew && \
     ./gradlew assembleRelease -q --console=plain -x test --no-daemon
 
 #########################################
@@ -85,19 +76,18 @@ FROM amazoncorretto:21-alpine
 
 WORKDIR /app
 
-# Define limite do Java para 4GB no Runtime
-# Se o container for limitado externamente, garanta que o limite seja > 4GB
-ENV _JAVA_OPTIONS="-Xmx4g"
+# Configuração de memória para rodar em container de 2GB
+# Deixa ~500MB livres para o sistema operacional do container
+ENV _JAVA_OPTIONS="-Xmx1536m"
 
-# Prepara volume persistente
+# Volume persistente
 RUN mkdir -p /var/lib/app_dados && chmod 777 /var/lib/app_dados
 VOLUME /var/lib/app_dados
 
-# Copia artefatos (JAR do Backend + APK do Mobile)
+# Copia artefatos
 COPY --from=backend-build /backend/target/*.jar app.jar
 RUN mkdir -p /app/apk
 COPY --from=mobile-build /frontend/android/app/build/outputs/apk/release/app-release.apk /app/apk/app-release.apk
 
 EXPOSE 8417
-
 CMD ["java", "-jar", "/app/app.jar"]

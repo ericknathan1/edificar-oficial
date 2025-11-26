@@ -36,15 +36,15 @@ pipeline {
                     def appName = 'edificar'
                     def imageTag = "${appName}:${env.BUILD_ID}"
 
-                    // Para e remove container existente, se houver
+                    // Limpa container anterior
                     sh "docker stop ${appName} || exit 0"
                     sh "docker rm -v ${appName} || exit 0"
                     
-                    sh """
+                   sh """
                         docker run -d \
                         --name ${appName} \
-                        --memory=6g \
-                        --cpus="2" \
+                        --memory=2g \
+                        --cpus="1" \
                         -v /data/app_producao:/var/lib/app_dados \
                         -p 8417:8417 \
                         ${imageTag}
