@@ -1,0 +1,18 @@
+# Ignorar dependências e builds locais
+node_modules
+npm-debug.log
+yarn-error.log
+.git
+.gradle
+.idea
+.vscode
+
+# Ignorar builds nativos gerados localmente
+frontend/node_modules
+frontend/android
+frontend/ios
+frontend/.expo
+
+# Ignorar builds do backend
+backend/target
+backend/src/main/resources/application.properties
