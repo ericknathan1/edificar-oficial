@@ -20,7 +20,7 @@
       },
       "edgeToEdgeEnabled": true,
       "predictiveBackGestureEnabled": false,
-      "package": "com.anonymous.frontend"
+      "package": "com.ericknathan.edificar"
     },
     "web": {
       "output": "static",
@@ -45,6 +45,12 @@
     "experiments": {
       "typedRoutes": true,
       "reactCompiler": true
+    },
+    "extra": {
+      "router": {},
+      "eas": {
+        "projectId": "e15b21f9-048a-49a4-855f-e12485e9b562"
+      }
     }
   }
 }
