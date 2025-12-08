@@ -3,8 +3,8 @@ import axios from 'axios';
 
 const api = axios.create(
     {
-        // baseURL: "http://172.17.192.1:8417",
-        baseURL: "http://academico3.rj.senac.br/edificar",
+        baseURL: "http://172.18.160.1:8417",
+        // baseURL: "http://academico3.rj.senac.br/edificar",
         headers: {
             'Content-Type': 'application/json',
         }

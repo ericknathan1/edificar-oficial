@@ -31,8 +31,9 @@ public class FrequenciaService {
     private UsuarioRepository usuarioRepository;
     private TurmaRepository turmaRepository;
     private LecionaRepository lecionaRepository;
+    private AuthenticationService authenticationService;
 
-    public FrequenciaService(ModelMapper modelMapper, FrequenciaRepository frequenciaRepository, AulaRepository aulaRepository, AlunoRepository alunoRepository, UsuarioRepository usuarioRepository, TurmaRepository turmaRepository, LecionaRepository lecionaRepository) {
+    public FrequenciaService(ModelMapper modelMapper, FrequenciaRepository frequenciaRepository, AulaRepository aulaRepository, AlunoRepository alunoRepository, UsuarioRepository usuarioRepository, TurmaRepository turmaRepository, LecionaRepository lecionaRepository, AuthenticationService authenticationService) {
         this.modelMapper = modelMapper;
         this.frequenciaRepository = frequenciaRepository;
         this.aulaRepository = aulaRepository;
@@ -40,6 +41,7 @@ public class FrequenciaService {
         this.usuarioRepository = usuarioRepository;
         this.turmaRepository = turmaRepository;
         this.lecionaRepository = lecionaRepository;
+        this.authenticationService = authenticationService;
     }
 
     public List<FrequenciaResponse> frequenciaPorAula(Long aulaId){
@@ -51,14 +53,14 @@ public class FrequenciaService {
 
     public FrequenciaResponse aplicarPresenca(Long aulaId, FrequenciaStatusRequest request){
         Aula aula = this.aulaRepository.aulaPorId(aulaId);
-        Long professorId = request.getProfessorId();
+        Long professorId = authenticationService.getIdUsuarioAutenticado();
         Long alunoId = request.getAlunoId();
 
         if (aula == null){
             throw new IllegalArgumentException("Aula não existe");
         }
         Usuario usuario = usuarioRepository.usuarioPorId(professorId);
-        if (usuario.getRoles().stream().anyMatch(r -> r.getName().equals(RoleName.ROLE_PROFESSOR))){
+        if (usuario.getRoles().stream().noneMatch(r -> r.getName().equals(RoleName.ROLE_PROFESSOR))){
             throw new IllegalArgumentException("O usuario selecionado não é um professor: "+professorId);
         }
 

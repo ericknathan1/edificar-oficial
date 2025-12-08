@@ -16,7 +16,16 @@ export const usePermissions = () => {
         }
     };
 
+    const isProfessor = () => {
+        if(userRoles.includes("PROFESSOR")){
+            return true;
+        }else{
+            return false;
+        }
+    };
+
     return {
         isAdmin: isAdmin()
+        , isProfessor: isProfessor()
     };
 };
