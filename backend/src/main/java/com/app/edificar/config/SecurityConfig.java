@@ -1,8 +1,6 @@
 package com.app.edificar.config;
 
 
-import java.util.Arrays;
-
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -16,9 +14,6 @@ import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
-import org.springframework.web.cors.CorsConfiguration;
-import org.springframework.web.cors.CorsConfigurationSource;
-import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 
 
 @Configuration
@@ -29,8 +24,13 @@ public class SecurityConfig {
    private UserAuthenticationFilter userAuthenticationFilter;
 
    public static final String [] ENDPOINTS_PADRAO = {
-    "/usuarios/login",
-    "/usuarios/cadastro",
+    "/usuarios/**",
+    "/professores/**",
+    "/lecionas/**",
+    "/turmas/**",
+    "/alunos/**",
+    "/aulas/**",
+    "/frequencias/**",
     "/web/download/app",
     "/",
     "/index.html",
@@ -64,37 +64,36 @@ public class SecurityConfig {
     "/frequencias/**"
    };
 
-   @Bean
-    CorsConfigurationSource corsConfigurationSource() {
-        CorsConfiguration configuration = new CorsConfiguration();
+//    @Bean
+//     CorsConfigurationSource corsConfigurationSource() {
+//         CorsConfiguration configuration = new CorsConfiguration();
         
-        // Permite as origens do seu app React Native
-        configuration.setAllowedOrigins(Arrays.asList(
-            "http://localhost:8081", 
-            "http://26.123.223.30:8081" 
-            // Adicione outras origens se necessário
-        ));
+//         // Permite as origens do seu app React Native
+//         configuration.setAllowedOrigins(Arrays.asList(
+//             "http://localhost:8081", 
+//             "http://26.123.223.30:8081" 
+//             // Adicione outras origens se necessário
+//         ));
         
-        // Quais métodos HTTP são permitidos
-        configuration.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"));
+//         // Quais métodos HTTP são permitidos
+//         configuration.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"));
         
-        // Quais cabeçalhos são permitidos (IMPORTANTE: inclua "Authorization")
-        configuration.setAllowedHeaders(Arrays.asList("Authorization", "Content-Type", "Accept"));
+//         // Quais cabeçalhos são permitidos (IMPORTANTE: inclua "Authorization")
+//         configuration.setAllowedHeaders(Arrays.asList("Authorization", "Content-Type", "Accept"));
         
-        // Permite credenciais (necessário para cabeçalhos customizados)
-        configuration.setAllowCredentials(true); 
+//         // Permite credenciais (necessário para cabeçalhos customizados)
+//         configuration.setAllowCredentials(true); 
 
-        UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
-        // Aplica esta configuração para TODAS as rotas ("/**")
-        source.registerCorsConfiguration("/**", configuration); 
-        return source;
-    }
+//         UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
+//         // Aplica esta configuração para TODAS as rotas ("/**")
+//         source.registerCorsConfiguration("/**", configuration); 
+//         return source;
+//     }
 
    @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
         http
                 .csrf(csrf -> csrf.disable())
-                .cors(cors -> cors.configurationSource(corsConfigurationSource()))
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers(ENDPOINTS_PADRAO).permitAll()
