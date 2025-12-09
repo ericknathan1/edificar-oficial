@@ -59,7 +59,7 @@ const UsuarioItem = ({ item, onPress }: UsuarioItemProps) => (
             
             <View style={styles.headerTextContainer}>
                 <Text style={styles.itemName}>{item.nome}</Text>
-                <Text style={styles.itemSubtitle}>{item.roles.join(', ')}</Text>
+                <Text style={styles.itemSubtitle}>{item.roles.map(role => role.replace("ROLE_", "")).join(', ')}</Text>
             </View>
 
             <View style={[styles.statusBadge, { backgroundColor: getStatusColor(item.status) + '20' }]}>

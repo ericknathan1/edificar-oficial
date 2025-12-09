@@ -42,7 +42,7 @@ export default function PerfilScreen() {
                 <Text style={styles.name}>{user.nome}</Text>
                 <Text style={styles.detail}><Text style={styles.detailTitle}>ID:</Text> {user.id}</Text>
                 <Text style={styles.detail}><Text style={styles.detailTitle}>Email:</Text> {user.email}</Text>
-                <Text style={styles.detail}><Text style={styles.detailTitle}>Cargos:</Text> {user.roles.join(', ')}</Text>
+                <Text style={styles.detail}><Text style={styles.detailTitle}>Cargos:</Text> {user.roles.map(role => role.replace("ROLE_", "")).join(', ')}</Text>
             </Card>
 
             <Button

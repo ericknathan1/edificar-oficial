@@ -9,7 +9,7 @@ export const usePermissions = () => {
     const userRoles = user?.roles?.map(normalizeRole) ?? [];
 
     const isAdmin = () => {
-        if(userRoles.includes("ADMINISTRADOR")){
+        if(userRoles.includes("ROLE_ADMINISTRADOR")){
             return true;
         }else{
             return false;
@@ -17,15 +17,17 @@ export const usePermissions = () => {
     };
 
     const isProfessor = () => {
-        if(userRoles.includes("PROFESSOR")){
+        if(userRoles.includes("ROLE_PROFESSOR")){
             return true;
         }else{
             return false;
         }
     };
 
+    
+
     return {
-        isAdmin: isAdmin()
-        , isProfessor: isProfessor()
+        isAdmin: isAdmin(),
+        isProfessor: isProfessor()
     };
 };

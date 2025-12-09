@@ -73,7 +73,7 @@ const UsuarioDetalheScreen = ({ usuarioId, onBack, onEdit, onDeleteSuccess }: Pr
             <Text style={styles.detailTitle}>{user.nome}</Text>
             <Text style={styles.detail}>ID: {user.id}</Text>
             <Text style={styles.detail}>Email: {user.email}</Text>
-            <Text style={styles.detail}>Cargos: {user.roles.join(', ')}</Text>
+            <Text style={styles.detail}>Cargos: {user.roles.map(role => role.replace("ROLE_", "")).join(', ')}</Text>
             <Text style={styles.detail}>Status: {user.status}</Text>
             
             {/* --- LINHA ADICIONADA --- */}
