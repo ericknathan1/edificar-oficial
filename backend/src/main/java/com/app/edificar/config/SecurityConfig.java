@@ -34,6 +34,9 @@ public class SecurityConfig {
     "/web/download/app",
     "/",
     "/index.html",
+    "/imgs/**",        // <--- Adicione: Libera as imagens da pasta static/imgs
+    "/*.apk",          // <--- Adicione: Libera o download de arquivos .apk na raiz do static
+    "/favicon.ico",
     "/h2-console",
     // 🔓 Swagger/OpenAPI UI
     "/v3/api-docs/**",
