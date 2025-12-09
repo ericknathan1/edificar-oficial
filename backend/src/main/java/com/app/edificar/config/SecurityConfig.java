@@ -32,6 +32,8 @@ public class SecurityConfig {
     "/usuarios/login",
     "/usuarios/cadastro",
     "/web/download/app",
+    "/",
+    "/index.html",
     "/h2-console",
     // 🔓 Swagger/OpenAPI UI
     "/v3/api-docs/**",
