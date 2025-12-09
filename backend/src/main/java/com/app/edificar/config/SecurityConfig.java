@@ -24,18 +24,11 @@ public class SecurityConfig {
    private UserAuthenticationFilter userAuthenticationFilter;
 
    public static final String [] ENDPOINTS_PADRAO = {
-    "/usuarios/**",
-    "/professores/**",
-    "/lecionas/**",
-    "/turmas/**",
-    "/alunos/**",
-    "/aulas/**",
-    "/frequencias/**",
-    "/web/download/app",
+    "/usuarios/login",
+    "/usuarios/cadastro",
     "/",
     "/index.html",
-    "/imgs/**",        // <--- Adicione: Libera as imagens da pasta static/imgs
-    "/*.apk",          // <--- Adicione: Libera o download de arquivos .apk na raiz do static
+    "/imgs/**",
     "/favicon.ico",
     "/h2-console",
     // 🔓 Swagger/OpenAPI UI
