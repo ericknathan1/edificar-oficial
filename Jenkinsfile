@@ -11,9 +11,9 @@ pipeline {
             steps {
                 script {
                     env.PATH = "/usr/bin:$PATH"
-                     dir('backend') {
+                    dir('backend') {
                         sh 'mvn clean install'
-                     }
+                    }
                 }
             }
         }
@@ -23,8 +23,11 @@ pipeline {
                 script {
                     def appName = 'edificar'
                     def imageTag = "${appName}:${env.BUILD_ID}"
-                    // O build aqui será muito mais rápido agora
-                    sh "docker build -t ${imageTag} ."
+
+                    dir('backend') {
+                        sh "docker build -t ${imageTag} ."
+                    }
+                    
                 }
             }
         }
@@ -35,19 +38,9 @@ pipeline {
                     def appName = 'edificar'
                     def imageTag = "${appName}:${env.BUILD_ID}"
 
-                    // Limpa container anterior
                     sh "docker stop ${appName} || exit 0"
                     sh "docker rm -v ${appName} || exit 0"
-                     
-                   sh """
-                        docker run -d \
-                        --name ${appName} \
-                        --memory=2g \
-                        --cpus="1" \
-                        -v /data/app_producao:/var/lib/app_dados \
-                        -p 8417:8417 \
-                        ${imageTag}
-                    """
+                    sh "docker run -d --name ${appName} -p 8417:8417 ${imageTag}"
                 }
             }
         }
