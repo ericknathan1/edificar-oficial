@@ -20,7 +20,9 @@
       },
       "edgeToEdgeEnabled": true,
       "predictiveBackGestureEnabled": false,
-      "package": "com.ericknathan.edificar"
+      "package": "com.ericknathan.edificar",
+      "usesCleartextTraffic": true,
+       "networkSecurityConfig": "./network-security-config.xml"
     },
     "web": {
       "output": "static",
@@ -40,7 +42,8 @@
           }
         }
       ],
-      "expo-font"
+      "expo-font",
+      "expo-build-properties"
     ],
     "experiments": {
       "typedRoutes": true,
