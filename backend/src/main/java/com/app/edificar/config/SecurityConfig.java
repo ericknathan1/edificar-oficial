@@ -34,7 +34,9 @@ public class SecurityConfig {
     "/v3/api-docs/**",
     "/swagger-ui/**",
     "/swagger-ui.html",
-    "/home"
+    "/home",
+    "/style",
+    "/layout.css"
    };
 
    public static final String[] ENDPOINTS_PROFESSOR = {
