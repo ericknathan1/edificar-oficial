@@ -22,7 +22,7 @@
       "predictiveBackGestureEnabled": false,
       "package": "com.ericknathan.edificar",
       "usesCleartextTraffic": true,
-       "networkSecurityConfig": "./network-security-config.xml"
+       "networkSecurityConfig": "./network_security_config.xml"
     },
     "web": {
       "output": "static",
