@@ -141,12 +141,15 @@ public class SecurityConfig {
                 .csrf(csrf -> csrf.disable())
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(auth -> auth
+                        .requestMatchers(HttpMethod.POST, "/usuarios/cadastro").permitAll()
+                        .requestMatchers(HttpMethod.POST, "/usuarios/login").permitAll()
                         .requestMatchers(ENDPOINTS_PADRAO).permitAll()
                         .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
                         .requestMatchers(ENDPOINTS_PROFESSOR).hasAnyRole("PROFESSOR", "ADMINISTRADOR")
                         .anyRequest().authenticated()
                 )
                 .addFilterBefore(userAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);
+                
 
         return http.build();
     }
