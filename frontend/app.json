@@ -1,11 +1,11 @@
 {
   "expo": {
-    "name": "frontend",
-    "slug": "frontend",
+    "name": "Edificar",
+    "slug": "edificar-app",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
-    "scheme": "frontend",
+    "scheme": "edificar",
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
     "ios": {
@@ -22,7 +22,7 @@
       "predictiveBackGestureEnabled": false,
       "package": "com.ericknathan.edificar",
       "usesCleartextTraffic": true,
-       "networkSecurityConfig": "./network_security_config.xml"
+      "networkSecurityConfig": "./network_security_config.xml"
     },
     "web": {
       "output": "static",
